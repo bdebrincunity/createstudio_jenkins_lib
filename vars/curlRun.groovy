@@ -1,7 +1,7 @@
 /*
     Run a curl against a given url
  */
-def curlRun (url, out) {
+def call (def url, def out) {
     echo "Running curl on ${url}"
 
     script {

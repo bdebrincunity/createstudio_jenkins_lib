@@ -1,7 +1,7 @@
 /*
     Test with a simple curl and check we get 200 back
  */
-def curlTest (namespace, out) {
+def call (def namespace, def out) {
     echo "Running tests in ${namespace}"
 
     script {
