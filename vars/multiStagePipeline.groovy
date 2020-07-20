@@ -20,6 +20,11 @@ def call(body) {
             IMAGE_NAME = "${pipelineParams.SERVICE_NAME}"
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
+            DOCKER_TAG = 'dev'
+            BuildID = UUID.randomUUID().toString()
+            buildManifest = 'docker/build_manifest.json'
+            gcpBucketCredential = 'sa-createstudio-bucket'
+            registryCredential = 'sa-createstudio-jenkins'
         }
     
         parameters {
