@@ -21,6 +21,8 @@ def call(body) {
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
             DOCKER_TAG = 'dev'
+            DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
+            HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
             BuildID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
@@ -73,8 +75,8 @@ def call(body) {
                     // Load Docker registry and Helm repository configurations from file
                     //load "${JENKINS_HOME}/parameters.groovy"
     
-                    echo "DOCKER_REG is ${pipelineParams.DOCKER_REG}"
-                    echo "HELM_REPO  is ${pipelineParams.HELM_REPO}"
+                    echo "DOCKER_REG is ${DOCKER_REG}"
+                    echo "HELM_REPO  is ${HELM_REPO}"
     
                     // Define a unique name for the tests container and helm release
                     script {
@@ -93,7 +95,7 @@ def call(body) {
                         script {
                             echo "Building application and Docker image"
                             //myapp = BuildDockerImage(registry: registry, returnStdout: true) 
-                            myapp = sh("docker build -t ${DOCKER_REG}/${DOCKER_REPO}:${DOCKER_TAG} ${BUILD_DIR} || errorExit \"Building ${DOCKER_REPO}:${DOCKER_TAG} failed\"")
+                            myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${DOCKER_TAG} || errorExit \"Building ${DOCKER_REG}/${ID}:${DOCKER_TAG} failed\"")
                              
                             echo "Running local docker tests"
         
