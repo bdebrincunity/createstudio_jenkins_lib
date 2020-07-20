@@ -17,7 +17,7 @@ def call(body) {
     
         // Some global default variables
         environment {
-            IMAGE_NAME = "pipelineParams.SERVICE_NAME"
+            IMAGE_NAME = pipelineParams.SERVICE_NAME
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
         }
@@ -67,7 +67,7 @@ def call(body) {
                     // Load Docker registry and Helm repository configurations from file
                     //load "${JENKINS_HOME}/parameters.groovy"
     
-                    echo "DOCKER_REG is pipelineParams.DOCKER_REG"
+                    echo "DOCKER_REG is" pipelineParams.DOCKER_REG
                     echo "HELM_REPO  is ${HELM_REPO}"
     
                     // Define a unique name for the tests container and helm release
