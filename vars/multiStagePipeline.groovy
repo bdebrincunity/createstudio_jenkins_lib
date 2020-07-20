@@ -168,7 +168,7 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             // createNamespace (namespace)
     
-                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                            //docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 echo "Downloading k8s config"
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                                 sh("helm repo add chartmuseum ${HELM_REPO}")
@@ -178,7 +178,7 @@ def call(body) {
                                 // Deploy with helm
                                 echo "Deploying"
                                 helmInstall(namespace, "${ID}", env)
-                            }
+                            //}
                         }
                     }
                 }
