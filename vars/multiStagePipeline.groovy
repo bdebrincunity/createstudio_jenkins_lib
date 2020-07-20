@@ -169,8 +169,8 @@ def call(body) {
                             // createNamespace (namespace)
     
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
-                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum ${HELM_REPO}")
                                 sh("helm repo update")
                                 // Remove release if exists
                                 helmDelete (namespace, "${ID}", env)
@@ -224,7 +224,7 @@ def call(body) {
 
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                sh("helm repo add chartmuseum ${HELM_REPO}")
                                 sh("helm repo update")
                                 // Remove release if exists
                                 helmDelete (namespace, "${ID}", env)
@@ -307,6 +307,7 @@ def call(body) {
 
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum ${HELM_REPO}")
                                 sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
                                 sh("helm repo update")
                                 // Remove release if exists
