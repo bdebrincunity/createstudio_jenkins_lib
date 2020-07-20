@@ -112,37 +112,49 @@ def call(body) {
             }
     
             // Run the 3 tests on the currently running ACME Docker container
-            stage('Local tests') {
-                parallel {
-                    stage('Curl http_code') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'http_code')
-                        }
-                    }
-                    stage('Curl total_time') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'total_time')
-                        }
-                    }
-                    stage('Curl size_download') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'size_download')
-                        }
-                    }
-                }
-            }
+            //stage('Local tests') {
+            //    parallel {
+            //        stage('Curl http_code') {
+            //            steps {
+            //                curlRun ("http://${host_ip}", 'http_code')
+            //            }
+            //        }
+            //        stage('Curl total_time') {
+            //            steps {
+            //                curlRun ("http://${host_ip}", 'total_time')
+            //            }
+            //        }
+            //        stage('Curl size_download') {
+            //            steps {
+            //                curlRun ("http://${host_ip}", 'size_download')
+            //            }
+            //        }
+            //    }
+            //}
     
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
                 steps {
-                    echo "Stop and remove container"
-                    sh "docker stop ${ID}"
+                    container('docker') {
+                        script {
+                            echo "Packing helm chart"
+                            PackageHelmChart()
+                            echo "Pushing helm chart"
+                            UploadHelmChart(chart_dir: "helm", package_name: "${IMAGE_NAME}")
+                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                pushDockerImage()
+                                downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                sh("helm repo update")
+                                sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
+                            }
+                        }
+                    }
+                    //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
+                    //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
-                    echo "Pushing pipelineParams.DOCKER_REG/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
-                    sh "${WORKSPACE}/build.sh --push --registry pipelineParams.DOCKER_REG --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
-    
-                    echo "Packing helm chart"
-                    sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${pipelineParams.HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
+                    //echo "Packing helm chart"
+                    //sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
                 }
             }
     
