@@ -95,7 +95,7 @@ def call(body) {
                         script {
                             echo "Building application and Docker image"
                             //myapp = BuildDockerImage(registry: registry, returnStdout: true) 
-                            myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${DOCKER_TAG} || errorExit \"Building ${DOCKER_REG}/${ID}:${DOCKER_TAG} failed\"")
+                            myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${DOCKER_TAG} . || errorExit \"Building ${DOCKER_REG}/${ID}:${DOCKER_TAG} failed\"")
                              
                             echo "Running local docker tests"
         
