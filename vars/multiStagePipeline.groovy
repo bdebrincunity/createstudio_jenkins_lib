@@ -4,85 +4,7 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = pipelineParams
     body()
-
-    /*
-        Helm install
-     */
-    def helmInstall (namespace, release) {
-        echo "Installing ${release} in ${NAMESPACE}"
-    
-        script {
-            release = "${release}-${NAMESPACE}"
-            sh "helm repo add helm ${HELM_REPO}; helm repo update"
-            sh """
-                helm upgrade --install --namespace ${NAMESPACE} ${release} \
-                    --set imagePullSecrets=${IMG_PULL_SECRET} \
-                    --set image.repository=${DOCKER_REG}/${IMAGE_NAME},image.tag=${DOCKER_TAG} helm/acme
-            """
-            sh "sleep 5"
-        }
-    }
-    
-    /*
-        Helm delete (if exists)
-     */
-    def helmDelete (namespace, release) {
-        echo "Deleting ${release} in ${NAMESPACE} if deployed"
-    
-        script {
-            release = "${release}-${NAMESPACE}"
-            sh "[ -z \"\$(helm ls --short ${release} 2>/dev/null)\" ] || helm delete --purge ${release}"
-        }
-    }
-    
-    /*
-        Run a curl against a given url
-     */
-    def curlRun (url, out) {
-        echo "Running curl on ${url}"
-    
-        script {
-            if (out.equals('')) {
-                out = 'http_code'
-            }
-            echo "Getting ${out}"
-                def result = sh (
-                    returnStdout: true,
-                    script: "curl --output /dev/null --silent --connect-timeout 5 --max-time 5 --retry 5 --retry-delay 5 --retry-max-time 30 --write-out \"%{${out}}\" ${url}"
-            )
-            echo "Result (${out}): ${result}"
-        }
-    }
-    
-    /*
-        Test with a simple curl and check we get 200 back
-     */
-    def curlTest (namespace, out) {
-        echo "Running tests in ${NAMESPACE}"
-    
-        script {
-            if (out.equals('')) {
-                out = 'http_code'
-            }
-    
-            // Get deployment's service IP
-            def svc_ip = sh (
-                    returnStdout: true,
-                    script: "kubectl get svc -n ${NAMESPACE} | grep ${ID} | awk '{print \$3}'"
-            )
-    
-            if (svc_ip.equals('')) {
-                echo "ERROR: Getting service IP failed"
-                sh 'exit 1'
-            }
-    
-            echo "svc_ip is ${svc_ip}"
-            url = 'http://' + svc_ip
-    
-            curlRun (url, out)
-        }
-    }
-    
+   
     /*
         This is the main pipeline section with the stages of the CI/CD
      */
@@ -95,12 +17,7 @@ def call(body) {
     
         // Some global default variables
         environment {
-            IMAGE_NAME = "${SERVICE_NAME}"
-            buildManifest = 'docker/build_manifest.json'
-            BuildID = UUID.randomUUID().toString()
-            registryCredential = 'sa-createstudio-jenkins'
-            gcpBucketCredential = 'sa-createstudio-bucket'
-
+            IMAGE_NAME = 'acme'
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
             PARAMETERS_FILE = "${JENKINS_HOME}/parameters.groovy"
@@ -173,7 +90,7 @@ def call(body) {
             stage('Build and tests') {
                 steps {
                     echo "Building application and Docker image"
-                    sh "${WORKSPACE}/build.sh --build --registry ${DOCKER_REG} --tag ${DOCKER_TAG}"
+                    sh "${WORKSPACE}/build.sh --build --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
                     echo "Running tests"
     
@@ -217,10 +134,10 @@ def call(body) {
                     sh "docker stop ${ID}"
     
                     echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
-                    sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG}"
+                    sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
                     echo "Packing helm chart"
-                    sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO}"
+                    sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
                 }
             }
     
@@ -228,10 +145,10 @@ def call(body) {
             stage('Deploy to dev') {
                 steps {
                     script {
-                        namespace = "${NAMESPACE}"
+                        namespace = 'development'
     
-                        echo "Deploying application ${ID} to ${NAMESPACE} namespace"
-                        
+                        echo "Deploying application ${ID} to ${namespace} namespace"
+                        createNamespace (namespace)
     
                         // Remove release if exists
                         helmDelete (namespace, "${ID}")
@@ -277,10 +194,10 @@ def call(body) {
             stage('Deploy to staging') {
                 steps {
                     script {
-                        namespace = "${NAMESPACE}"
+                        namespace = 'staging'
     
-                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${NAMESPACE} namespace"
-                        
+                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${namespace} namespace"
+                        createNamespace (namespace)
     
                         // Remove release if exists
                         helmDelete (namespace, "${ID}")
@@ -355,10 +272,10 @@ def call(body) {
                 steps {
                     script {
                         DEPLOY_PROD = true
-                        namespace = "${NAMESPACE}"
+                        namespace = 'production'
     
-                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${NAMESPACE} namespace"
-                        
+                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${namespace} namespace"
+                        createNamespace (namespace)
     
                         // Deploy with helm
                         echo "Deploying"
