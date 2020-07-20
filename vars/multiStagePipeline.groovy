@@ -17,10 +17,9 @@ def call(body) {
     
         // Some global default variables
         environment {
-            IMAGE_NAME = "${SERVICE_NAME}"
+            IMAGE_NAME = "pipelineParams.SERVICE_NAME"
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
-            PARAMETERS_FILE = "${JENKINS_HOME}/parameters.groovy"
         }
     
         parameters {
@@ -68,7 +67,7 @@ def call(body) {
                     // Load Docker registry and Helm repository configurations from file
                     //load "${JENKINS_HOME}/parameters.groovy"
     
-                    echo "DOCKER_REG is ${DOCKER_REG}"
+                    echo "DOCKER_REG is pipelineParams.DOCKER_REG"
                     echo "HELM_REPO  is ${HELM_REPO}"
     
                     // Define a unique name for the tests container and helm release
@@ -95,7 +94,7 @@ def call(body) {
                         sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
     
                         echo "Starting ${IMAGE_NAME} container"
-                        sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG}"
+                        sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 pipelineParams.DOCKER_REG/${IMAGE_NAME}:${DOCKER_TAG}"
     
                         script {
                             host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
@@ -131,8 +130,8 @@ def call(body) {
                     echo "Stop and remove container"
                     sh "docker stop ${ID}"
     
-                    echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
-                    sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
+                    echo "Pushing pipelineParams.DOCKER_REG/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
+                    sh "${WORKSPACE}/build.sh --push --registry pipelineParams.DOCKER_REG --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
                     echo "Packing helm chart"
                     sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
