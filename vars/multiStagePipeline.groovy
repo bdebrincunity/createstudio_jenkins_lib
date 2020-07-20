@@ -28,6 +28,7 @@ def call(body) {
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
+            namespace = 'labs-createstudio'
         }
     
         parameters {
@@ -143,10 +144,10 @@ def call(body) {
                             UploadHelmChart(chart_dir: "helm", package_name: "${IMAGE_NAME}")
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 pushDockerImage()
-                                downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
-                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
-                                sh("helm repo update")
-                                sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
+                                //downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
+                                //sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                //sh("helm repo update")
+                                //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
                             }
                         }
                     }
@@ -159,93 +160,104 @@ def call(body) {
             }
     
             ////////// Step 4 //////////
-            stage('Deploy to dev') {
+            stage('Deploy to test') {
                 steps {
-                    script {
-                        namespace = 'development'
+                    container('docker') {
+                        script {
+                            env = 'test'
     
-                        echo "Deploying application ${ID} to ${namespace} namespace"
-                        createNamespace (namespace)
+                            echo "Deploying application ${ID} to ${environment} kubernetes cluster "
+                            // createNamespace (namespace)
     
-                        // Remove release if exists
-                        helmDelete (namespace, "${ID}")
-    
-                        // Deploy with helm
-                        echo "Deploying"
-                        helmInstall(namespace, "${ID}")
+                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                sh("helm repo update")
+                                // Remove release if exists
+                                helmDelete (namespace, "${ID}", env)
+                                // Deploy with helm
+                                echo "Deploying"
+                                helmInstall(namespace, "${ID}", env)
+                            }
+                        }
                     }
                 }
             }
     
             // Run the 3 tests on the deployed Kubernetes pod and service
-            stage('Dev tests') {
-                parallel {
-                    stage('Curl http_code') {
-                        steps {
-                            curlTest (namespace, 'http_code')
-                        }
-                    }
-                    stage('Curl total_time') {
-                        steps {
-                            curlTest (namespace, 'time_total')
-                        }
-                    }
-                    stage('Curl size_download') {
-                        steps {
-                            curlTest (namespace, 'size_download')
-                        }
-                    }
-                }
-            }
+//            stage('Test tests') {
+//                parallel {
+//                    stage('Curl http_code') {
+//                        steps {
+//                            curlTest (namespace, 'http_code')
+//                        }
+//                    }
+//                    stage('Curl total_time') {
+//                        steps {
+//                            curlTest (namespace, 'time_total')
+//                        }
+//                    }
+//                    stage('Curl size_download') {
+//                        steps {
+//                            curlTest (namespace, 'size_download')
+//                        }
+//                    }
+//                }
+//            }
     
-            stage('Cleanup dev') {
+            stage('Cleanup Test') {
                 steps {
                     script {
                         // Remove release if exists
-                        helmDelete (namespace, "${ID}")
+                        helmDelete (namespace, "${ID}", test)
                     }
                 }
             }
-    
-            ////////// Step 5 //////////
+
             stage('Deploy to staging') {
                 steps {
-                    script {
-                        namespace = 'staging'
-    
-                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${namespace} namespace"
-                        createNamespace (namespace)
-    
-                        // Remove release if exists
-                        helmDelete (namespace, "${ID}")
-    
-                        // Deploy with helm
-                        echo "Deploying"
-                        helmInstall (namespace, "${ID}")
+                    container('docker') {
+                        script {
+                            env = 'staging'
+
+                            echo "Deploying application ${ID} to ${environment} kubernetes cluster "
+                            // createNamespace (namespace)
+
+                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                sh("helm repo update")
+                                // Remove release if exists
+                                helmDelete (namespace, "${ID}", env)
+                                // Deploy with helm
+                                echo "Deploying"
+                                helmInstall(namespace, "${ID}", env)
+                            }
+                        }
                     }
                 }
             }
     
             // Run the 3 tests on the deployed Kubernetes pod and service
-            stage('Staging tests') {
-                parallel {
-                    stage('Curl http_code') {
-                        steps {
-                            curlTest (namespace, 'http_code')
-                        }
-                    }
-                    stage('Curl total_time') {
-                        steps {
-                            curlTest (namespace, 'time_total')
-                        }
-                    }
-                    stage('Curl size_download') {
-                        steps {
-                            curlTest (namespace, 'size_download')
-                        }
-                    }
-                }
-            }
+//            stage('Staging tests') {
+//                parallel {
+//                    stage('Curl http_code') {
+//                        steps {
+//                            curlTest (namespace, 'http_code')
+//                        }
+//                    }
+//                    stage('Curl total_time') {
+//                        steps {
+//                            curlTest (namespace, 'time_total')
+//                        }
+//                    }
+//                    stage('Curl size_download') {
+//                        steps {
+//                            curlTest (namespace, 'size_download')
+//                        }
+//                    }
+//                }
+//            }
     
             stage('Cleanup staging') {
                 steps {
@@ -285,46 +297,68 @@ def call(body) {
                         environment name: 'DEPLOY_TO_PROD', value: 'true'
                     }
                 }
-    
                 steps {
-                    script {
-                        DEPLOY_PROD = true
-                        namespace = 'production'
-    
-                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${namespace} namespace"
-                        createNamespace (namespace)
-    
-                        // Deploy with helm
-                        echo "Deploying"
-                        helmInstall (namespace, "${ID}")
+                    container('docker') {
+                        script {
+                            DEPLOY_PROD = true
+                            env = 'production'
+
+                            echo "Deploying application ${ID} to ${environment} kubernetes cluster "
+                            // createNamespace (namespace)
+
+                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+                                sh("helm repo update")
+                                // Remove release if exists
+                                helmDelete (namespace, "${ID}", env)
+                                // Deploy with helm
+                                echo "Deploying"
+                                helmInstall(namespace, "${ID}", env)
+                            }
+                        }
                     }
                 }
+    
+//                steps {
+//                    script {
+//                        DEPLOY_PROD = true
+//                        namespace = 'production'
+//    
+//                        echo "Deploying application ${IMAGE_NAME}:${DOCKER_TAG} to ${namespace} namespace"
+//                        createNamespace (namespace)
+//    
+//                        // Deploy with helm
+//                        echo "Deploying"
+//                        helmInstall (namespace, "${ID}")
+//                    }
+//                }
             }
     
             // Run the 3 tests on the deployed Kubernetes pod and service
-            stage('Production tests') {
-                when {
-                    expression { DEPLOY_PROD == true }
-                }
-    
-                parallel {
-                    stage('Curl http_code') {
-                        steps {
-                            curlTest (namespace, 'http_code')
-                        }
-                    }
-                    stage('Curl total_time') {
-                        steps {
-                            curlTest (namespace, 'time_total')
-                        }
-                    }
-                    stage('Curl size_download') {
-                        steps {
-                            curlTest (namespace, 'size_download')
-                        }
-                    }
-                }
-            }
+//            stage('Production tests') {
+//                when {
+//                    expression { DEPLOY_PROD == true }
+//                }
+//    
+//                parallel {
+//                    stage('Curl http_code') {
+//                        steps {
+//                            curlTest (namespace, 'http_code')
+//                        }
+//                    }
+//                    stage('Curl total_time') {
+//                        steps {
+//                            curlTest (namespace, 'time_total')
+//                        }
+//                    }
+//                    stage('Curl size_download') {
+//                        steps {
+//                            curlTest (namespace, 'size_download')
+//                        }
+//                    }
+//                }
+//            }
         }
     }
 }
