@@ -12,8 +12,6 @@ def call (def namespace, def release, def env) {
         sh """
             helm upgrade --install --namespace ${namespace} ${release} \
                 --kubeconfig ${KUBE_CNF}
-                --set imagePullSecrets=${IMG_PULL_SECRET} \
-                --set image.repository=${DOCKER_REG}/${IMAGE_NAME},image.tag=${DOCKER_TAG} helm/acme
         """
         sh "sleep 5"
     }
