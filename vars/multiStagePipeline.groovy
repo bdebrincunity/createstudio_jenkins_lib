@@ -81,8 +81,8 @@ def call(body) {
                     // Define a unique name for the tests container and helm release
                     script {
                         branch = GIT_BRANCH.replaceAll('/', '-').replaceAll('\\*', '-')
-                        ID = "${IMAGE_NAME}-${DOCKER_TAG}-${branch}"
-    
+                        NAME_ID = "${IMAGE_NAME}-${DOCKER_TAG}-${branch}"
+    			def ID = NAME_ID.toLowerCase()
                         echo "Global ID set to ${ID}"
                     }
                 }
