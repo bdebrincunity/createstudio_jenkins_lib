@@ -25,6 +25,7 @@ def call(body) {
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
+            registry = 'gcr.io/unity-labs-createstudio-test'
         }
     
         parameters {
