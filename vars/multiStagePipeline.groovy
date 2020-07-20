@@ -17,7 +17,7 @@ def call(body) {
     
         // Some global default variables
         environment {
-            IMAGE_NAME = 'acme'
+            IMAGE_NAME = "${SERVICE_NAME}"
             TEST_LOCAL_PORT = 8817
             DEPLOY_PROD = false
             PARAMETERS_FILE = "${JENKINS_HOME}/parameters.groovy"
@@ -58,20 +58,20 @@ def call(body) {
                             url: 'https://github.com/eldada/jenkins-pipeline-kubernetes.git'
     
                     // Validate kubectl
-                    sh "kubectl cluster-info"
+                    //sh "kubectl cluster-info"
     
                     // Init helm client
                     sh "helm init"
     
                     // Make sure parameters file exists
-                    script {
-                        if (! fileExists("${PARAMETERS_FILE}")) {
-                            echo "ERROR: ${PARAMETERS_FILE} is missing!"
-                        }
-                    }
+                    //script {
+                    //    if (! fileExists("${PARAMETERS_FILE}")) {
+                    //        echo "ERROR: ${PARAMETERS_FILE} is missing!"
+                    //    }
+                    //}
     
                     // Load Docker registry and Helm repository configurations from file
-                    load "${JENKINS_HOME}/parameters.groovy"
+                    //load "${JENKINS_HOME}/parameters.groovy"
     
                     echo "DOCKER_REG is ${DOCKER_REG}"
                     echo "HELM_REPO  is ${HELM_REPO}"
