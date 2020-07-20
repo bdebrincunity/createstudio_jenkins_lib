@@ -92,17 +92,17 @@ def call(body) {
                     container('docker') {
                         script {
                             echo "Building application and Docker image"
-                            myapp = BuildDockerImage(registry: registry, returnStdout: true) 
-                        } 
-                        echo "Running local docker tests"
+                            //myapp = BuildDockerImage(registry: registry, returnStdout: true) 
+                            myapp = sh("docker build -t ${DOCKER_REG}/${DOCKER_REPO}:${DOCKER_TAG} ${BUILD_DIR} || errorExit \"Building ${DOCKER_REPO}:${DOCKER_TAG} failed\"")
+                             
+                            echo "Running local docker tests"
+        
+                            // Kill container in case there is a leftover
+                            sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
+        
+                            echo "Starting ${IMAGE_NAME} container"
+                            sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 pipelineParams.DOCKER_REG/${IMAGE_NAME}:${DOCKER_TAG}"
     
-                        // Kill container in case there is a leftover
-                        sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
-    
-                        echo "Starting ${IMAGE_NAME} container"
-                        sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 pipelineParams.DOCKER_REG/${IMAGE_NAME}:${DOCKER_TAG}"
-    
-                        script {
                             host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                         }
                     }
