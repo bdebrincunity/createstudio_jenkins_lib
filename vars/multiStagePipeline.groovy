@@ -95,15 +95,15 @@ def call(body) {
                         script {
                             echo "Building application and Docker image"
                             //myapp = BuildDockerImage(registry: registry, returnStdout: true) 
-                            myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${DOCKER_TAG} . || errorExit \"Building ${DOCKER_REG}/${ID}:${DOCKER_TAG} failed\"")
+                            myapp = sh("docker build -t ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} . || errorExit \"Building ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} failed\"")
                              
                             echo "Running local docker tests"
         
                             // Kill container in case there is a leftover
-                            sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
+                            sh "[ -z \"\$(docker ps -a | grep ${IMAGE_NAME} 2>/dev/null)\" ] || docker rm -f ${IMAGE_NAME}"
         
                             echo "Starting ${IMAGE_NAME} container"
-                            sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG}"
+                            sh "docker run --detach --name ${IMAGE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG}"
     
                             host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                         }
