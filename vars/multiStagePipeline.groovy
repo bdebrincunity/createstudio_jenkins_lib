@@ -52,16 +52,11 @@ def call(body) {
             ////////// Step 1 //////////
             stage('Git clone and setup') {
                 steps {
-                    echo "Check out acme code"
-                    git branch: "master",
-                            credentialsId: 'eldada-bb',
-                            url: 'https://github.com/eldada/jenkins-pipeline-kubernetes.git'
-    
                     // Validate kubectl
                     //sh "kubectl cluster-info"
     
                     // Init helm client
-                    sh "helm init"
+                    //sh "helm init"
     
                     // Make sure parameters file exists
                     //script {
@@ -89,19 +84,22 @@ def call(body) {
             ////////// Step 2 //////////
             stage('Build and tests') {
                 steps {
-                    echo "Building application and Docker image"
-                    sh "${WORKSPACE}/build.sh --build --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
+                    container('docker') {
+                        script {
+                            echo "Building application and Docker image"
+                            myapp = BuildDockerImage(registry: registry, returnStdout: true) 
+                        } 
+                        echo "Running local docker tests"
     
-                    echo "Running tests"
+                        // Kill container in case there is a leftover
+                        sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
     
-                    // Kill container in case there is a leftover
-                    sh "[ -z \"\$(docker ps -a | grep ${ID} 2>/dev/null)\" ] || docker rm -f ${ID}"
+                        echo "Starting ${IMAGE_NAME} container"
+                        sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG}"
     
-                    echo "Starting ${IMAGE_NAME} container"
-                    sh "docker run --detach --name ${ID} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG}"
-    
-                    script {
-                        host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
+                        script {
+                            host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
+                        }
                     }
                 }
             }
