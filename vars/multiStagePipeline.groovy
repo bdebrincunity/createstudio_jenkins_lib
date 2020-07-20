@@ -103,7 +103,7 @@ def call(body) {
                             sh "[ -z \"\$(docker ps -a | grep ${IMAGE_NAME} 2>/dev/null)\" ] || docker rm -f ${IMAGE_NAME}"
         
                             echo "Starting ${IMAGE_NAME} container"
-                            sh "docker run --detach --name ${DOCKER_REG}/${IMAGE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_IMAGE}/${IMAGE_NAME}"
+                            sh "docker run --detach --name ${DOCKER_REG}/${IMAGE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${IMAGE_NAME}"
     
                             host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                         }
