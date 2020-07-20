@@ -169,6 +169,7 @@ def call(body) {
                             // createNamespace (namespace)
     
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                echo "Downloading k8s config"
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                                 sh("helm repo add chartmuseum ${HELM_REPO}")
                                 sh("helm repo update")
