@@ -1,4 +1,4 @@
-def call () {
+def call (def app) {
     withCredentials([file(credentialsId: registryCredential, variable: 'GC_KEY')]) {
         sh '''
             echo "$GC_KEY" | tee key.json
@@ -6,8 +6,8 @@ def call () {
             yes | gcloud auth configure-docker
         '''
         echo "Pushing image To GCR"
-        myapp.push("${BuildID}")
+        app.push("${BuildID}")
         //myapp.push("${VERSION}")
-        myapp.push("latest")
+        app.push("latest")
     }
 }
