@@ -142,7 +142,7 @@ def call(body) {
                             echo "Pushing helm chart"
                             UploadHelmChart(chart_dir: "helm", package_name: "${IMAGE_NAME}")
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                pushDockerImage(myapp)
+                                pushDockerImage()
                                 downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
                                 sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
                                 sh("helm repo update")
