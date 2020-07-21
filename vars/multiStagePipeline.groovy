@@ -141,7 +141,7 @@ def call(body) {
                             echo "Packing helm chart"
                             PackageHelmChart()
                             echo "Pushing helm chart"
-                            UploadHelmChart(chart_dir: "helm", package_name: "${IMAGE_NAME}")
+                            UploadHelmChart(package_name: "${IMAGE_NAME}")
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 pushDockerImage()
                                 //downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
