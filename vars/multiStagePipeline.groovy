@@ -136,12 +136,15 @@ def call(body) {
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
                 steps {
+                    agent {
+                       docker { image: 'kiwigrid/gcloud-kubectl-helm' }
+                    }
 //                    container('docker') {
                         script {
                             echo "Packing helm chart"
                             PackageHelmChart()
                             echo "Pushing helm chart"
-//                            pushDockerImage()
+                            pushDockerImage()
                             //UploadHelmChart(package_name: "${IMAGE_NAME}")
 //                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
 //                                pushDockerImage()
