@@ -220,7 +220,7 @@ def call(body) {
                         script {
                             env = 'staging'
 
-                            echo "Deploying application ${ID} to ${environment} kubernetes cluster "
+                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             // createNamespace (namespace)
 
                             docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
