@@ -127,7 +127,7 @@ def call(body) {
             }
     
             ////////// Step 4 //////////
-            stage('Deploy to test') {
+            stage('Deploy to TEST') {
                 steps {
                     container('docker') {
                         script {
@@ -152,6 +152,25 @@ def call(body) {
                     script {
                         // Remove release if exists
                         helmDelete (namespace, "${ID}", "test")
+                    }
+                }
+            }
+            stage('Deploy to STAGING') {
+                steps {
+                    container('docker') {
+                        script {
+                            env = 'staging'
+                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
+                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                            installHelm()
+                            sh("helm repo add chartmuseum ${HELM_REPO}")
+                            sh("helm repo update")
+                            // Remove release if exists
+                            helmDelete (namespace, "${ID}", env)
+                            // Deploy with helm
+                            echo "Deploying"
+                            helmInstall(namespace, "${ID}", env)
+                        }
                     }
                 }
             }
