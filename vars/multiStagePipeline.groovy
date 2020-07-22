@@ -83,7 +83,7 @@ def call(body) {
                     script {
                         branch = GIT_BRANCH.replaceAll('/', '-').replaceAll('\\*', '-')
                         NAME_ID = "${IMAGE_NAME}-${DOCKER_TAG}-${branch}"
-    			ID = NAME_ID.toLowerCase()
+    			ID = NAME_ID.toLowerCase().replaceAll("_", "-")
                         echo "Global ID set to ${ID}"
                     }
                 }
