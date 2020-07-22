@@ -7,7 +7,6 @@ def call (def namespace, def release, def env) {
     KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
 
     script {
-        release = "${release}-${namespace}"
         sh "[ -z \"\$(helm ls --short ${release} 2>/dev/null)\" ] || helm delete --purge ${release} --kubeconfig ${KUBE_CNF}"
     }
 }
