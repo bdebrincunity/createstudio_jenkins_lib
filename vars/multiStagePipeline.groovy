@@ -169,7 +169,7 @@ def call(body) {
                     home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
                 }
                 steps {
-                    //container('docker') {
+                    container('docker') {
                         script {
                             env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
@@ -188,7 +188,7 @@ def call(body) {
                                 helmInstall(namespace, "${ID}", env)
                             }
                         }
-                    //}
+                    }
                 }
             }
     
