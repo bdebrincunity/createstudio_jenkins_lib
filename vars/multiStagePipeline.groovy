@@ -160,29 +160,29 @@ def call(body) {
             }
     
             ////////// Step 4 //////////
-            stage('Deploy to test') {
-                steps {
-                    container('docker') {
-                        script {
-                            env = 'test'
-                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                            // createNamespace (namespace)
-    
-                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                echo "Downloading k8s config"
-                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                                sh("helm repo add chartmuseum ${HELM_REPO}")
-                                sh("helm repo update")
-                                // Remove release if exists
-                                helmDelete (namespace, "${ID}", env)
-                                // Deploy with helm
-                                echo "Deploying"
-                                helmInstall(namespace, "${ID}", env)
-                            }
-                        }
-                    }
-                }
-            }
+//            stage('Deploy to test') {
+//                steps {
+//                    container('docker') {
+//                        script {
+//                            env = 'test'
+//                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
+//                            // createNamespace (namespace)
+//    
+//                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+//                                echo "Downloading k8s config"
+//                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+//                                sh("helm repo add chartmuseum ${HELM_REPO}")
+//                                sh("helm repo update")
+//                                // Remove release if exists
+//                                helmDelete (namespace, "${ID}", env)
+//                                // Deploy with helm
+//                                echo "Deploying"
+//                                helmInstall(namespace, "${ID}", env)
+//                            }
+//                        }
+//                    }
+//                }
+//            }
     
             // Run the 3 tests on the deployed Kubernetes pod and service
 //            stage('Test tests') {
