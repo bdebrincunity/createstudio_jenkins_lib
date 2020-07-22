@@ -54,7 +54,7 @@ def call(body) {
         // In this example, all is built and run from the master
         agent {
             docker {
-               image: 'kiwigrid/gcloud-kubectl-helm'
+                image 'kiwigrid/gcloud-kubectl-helm'
             }
         }
     
