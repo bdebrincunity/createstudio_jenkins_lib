@@ -116,7 +116,7 @@ def call(body) {
             ////////// Step 4 //////////
             stage('Deploy to test') {
                 steps {
-                    //container('docker') {
+                    container('docker') {
                         script {
                             env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
@@ -129,6 +129,7 @@ def call(body) {
                             // Deploy with helm
                             echo "Deploying"
                             helmInstall(namespace, "${ID}", env)
+                        }
                     }
                 }
             }
