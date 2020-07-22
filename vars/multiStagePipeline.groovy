@@ -135,10 +135,10 @@ def call(body) {
     
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
+                agent {
+                   docker { image: 'kiwigrid/gcloud-kubectl-helm' }
+                }
                 steps {
-                    agent {
-                       docker { image: 'kiwigrid/gcloud-kubectl-helm' }
-                    }
 //                    container('docker') {
                         script {
                             echo "Packing helm chart"
