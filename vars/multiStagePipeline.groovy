@@ -138,7 +138,7 @@ def call(body) {
                     home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
                 }
                 steps {
-                    container('docker') {
+//                    container('docker') {
                         script {
                             echo "Packing helm chart"
                             PackageHelmChart()
@@ -153,7 +153,7 @@ def call(body) {
                                 //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
                             }
                         }
-                    }
+//                    }
                     //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
                     //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
