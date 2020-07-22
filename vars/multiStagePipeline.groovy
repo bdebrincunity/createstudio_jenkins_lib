@@ -141,7 +141,7 @@ def call(body) {
                             echo "Packing helm chart"
                             PackageHelmChart()
                             echo "Pushing helm chart"
-                            pushDockerImage()
+//                            pushDockerImage()
                             //UploadHelmChart(package_name: "${IMAGE_NAME}")
 //                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
 //                                pushDockerImage()
