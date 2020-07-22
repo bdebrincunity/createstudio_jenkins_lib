@@ -10,7 +10,7 @@ def call (def namespace, def release, def env) {
         release = "${release}-${namespace}"
         sh "helm repo add helm ${HELM_REPO}; helm repo update"
         sh """
-            helm upgrade --install ./helm --namespace ${namespace} ${release} \
+            helm upgrade --install ${release} ./helm --namespace ${namespace} \
                 --kubeconfig ${KUBE_CNF}
         """
         sh "sleep 5"
