@@ -138,7 +138,7 @@ def call(body) {
                     home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
                 }
                 steps {
-//                    container('docker') {
+                   container('docker') {
                         script {
                             echo "Packing helm chart"
                             PackageHelmChart()
@@ -153,7 +153,7 @@ def call(body) {
                                 //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
                             }
                         }
-//                    }
+                    }
                     //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
                     //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
@@ -164,30 +164,21 @@ def call(body) {
     
             ////////// Step 4 //////////
             stage('Deploy to test') {
-                environment {
-                    home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
-                }
                 steps {
-                    container('docker') {
+                    //container('docker') {
                         script {
                             env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                            // createNamespace (namespace)
-    
-                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                echo "Downloading k8s config"
-                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-//                                installHelm()
-                                sh("helm repo add chartmuseum ${HELM_REPO}")
-                                sh("helm repo update")
-                                // Remove release if exists
-                                helmDelete (namespace, "${ID}", env)
-                                // Deploy with helm
-                                echo "Deploying"
-                                helmInstall(namespace, "${ID}", env)
-                            }
-                        }
-                    }
+                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                            installHelm()
+                            sh("helm repo add chartmuseum ${HELM_REPO}")
+                            sh("helm repo update")
+                            // Remove release if exists
+                            helmDelete (namespace, "${ID}", env)
+                            // Deploy with helm
+                            echo "Deploying"
+                            helmInstall(namespace, "${ID}", env)
+                    //}
                 }
             }
     
