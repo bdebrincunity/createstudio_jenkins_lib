@@ -51,13 +51,7 @@ def call(body) {
     */
         }
     
-        // In this example, all is built and run from the master
-        agent none
-        //agent {
-        //    docker {
-        //        image 'kiwigrid/gcloud-kubectl-helm'
-        //    }
-        //}
+        agent any
     
         // Pipeline stages
         stages {
@@ -140,29 +134,26 @@ def call(body) {
     
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
-                agent {
-                    docker { image 'kiwigrid/gcloud-kubectl-helm' }
-                }
                 environment {
                     home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
                 }
                 steps {
-//                    container('docker') {
+                    container('docker') {
                         script {
                             echo "Packing helm chart"
                             PackageHelmChart()
                             echo "Pushing helm chart"
 //                            pushDockerImage()
                             //UploadHelmChart(package_name: "${IMAGE_NAME}")
-//                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                            docker.image('google/cloud-sdk:alpine').inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 pushDockerImage()
                                 //downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
                                 //sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
                                 //sh("helm repo update")
                                 //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
-//                            }
+                            }
                         }
-//                    }
+                    }
                     //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
                     //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
     
@@ -183,7 +174,7 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             // createNamespace (namespace)
     
-//                            docker.image("kiwigrid/gcloud-kubectl-helm") { c ->
+                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                 echo "Downloading k8s config"
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
 //                                installHelm()
@@ -194,7 +185,7 @@ def call(body) {
                                 // Deploy with helm
                                 echo "Deploying"
                                 helmInstall(namespace, "${ID}", env)
-//                            }
+                            }
                         }
                     }
                 }
