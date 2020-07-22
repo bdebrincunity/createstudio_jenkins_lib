@@ -169,13 +169,13 @@ def call(body) {
                     home = "${WORKSPACE}" // Needed so tht AuthenticateGCloud and ApplyHelmChart play nice
                 }
                 steps {
-                    container('docker') {
+                    //container('docker') {
                         script {
                             env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             // createNamespace (namespace)
     
-                            docker.image("kiwigrid/gcloud-kubectl-helm") {
+                            docker.image("kiwigrid/gcloud-kubectl-helm") { c ->
                                 echo "Downloading k8s config"
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
 //                                installHelm()
@@ -188,7 +188,7 @@ def call(body) {
                                 helmInstall(namespace, "${ID}", env)
                             }
                         }
-                    }
+                    //}
                 }
             }
     
