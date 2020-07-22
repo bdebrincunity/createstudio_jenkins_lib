@@ -52,7 +52,12 @@ def call(body) {
         }
     
         // In this example, all is built and run from the master
-        agent any
+        agent {
+            kubernetes {}
+            docker {
+               image: 'kiwigrid/gcloud-kubectl-helm'
+            }
+        }
     
         // Pipeline stages
         stages {
@@ -175,7 +180,7 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             // createNamespace (namespace)
     
-                            docker.image("kiwigrid/gcloud-kubectl-helm") { c ->
+//                            docker.image("kiwigrid/gcloud-kubectl-helm") { c ->
                                 echo "Downloading k8s config"
                                 downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
 //                                installHelm()
@@ -186,7 +191,7 @@ def call(body) {
                                 // Deploy with helm
                                 echo "Deploying"
                                 helmInstall(namespace, "${ID}", env)
-                            }
+//                            }
                         }
                     }
                 }
