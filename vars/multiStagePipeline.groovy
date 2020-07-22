@@ -134,30 +134,30 @@ def call(body) {
             //}
     
             ////////// Step 3 //////////
-            stage('Publish Docker and Helm') {
-                steps {
-                    container('docker') {
-                        script {
-                            echo "Packing helm chart"
-                            PackageHelmChart()
-                            echo "Pushing helm chart"
-                            //UploadHelmChart(package_name: "${IMAGE_NAME}")
-                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                pushDockerImage()
-                                //downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
-                                //sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
-                                //sh("helm repo update")
-                                //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
-                            }
-                        }
-                    }
-                    //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
-                    //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
-    
-                    //echo "Packing helm chart"
-                    //sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
-                }
-            }
+//            stage('Publish Docker and Helm') {
+//                steps {
+//                    container('docker') {
+//                        script {
+//                            echo "Packing helm chart"
+//                            PackageHelmChart()
+//                            echo "Pushing helm chart"
+//                            //UploadHelmChart(package_name: "${IMAGE_NAME}")
+//                            docker.image("kiwigrid/gcloud-kubectl-helm").inside("-w /workspace -v \${PWD}:/workspace -it") {
+//                                pushDockerImage()
+//                                //downloadFile('k8s/configs/test/kubeconfig-labs-createstudio-test_environment', 'createstudio_ci_cd')
+//                                //sh("helm repo add chartmuseum https://chartmuseum.internal.unity3d.com")
+//                                //sh("helm repo update")
+//                                //sh("helm upgrade --install ${IMAGE_NAME} chartmuseum/${IMAGE_NAME} --kubeconfig k8s/configs/test/kubeconfig-labs-createstudio-test_environment")
+//                            }
+//                        }
+//                    }
+//                    //echo "Pushing ${DOCKER_REG}/${IMAGE_NAME}:${DOCKER_TAG} image to registry"
+//                    //sh "${WORKSPACE}/build.sh --push --registry ${DOCKER_REG} --tag ${DOCKER_TAG} --docker_usr ${DOCKER_USR} --docker_psw ${DOCKER_PSW}"
+//    
+//                    //echo "Packing helm chart"
+//                    //sh "${WORKSPACE}/build.sh --pack_helm --push_helm --helm_repo ${HELM_REPO} --helm_usr ${HELM_USR} --helm_psw ${HELM_PSW}"
+//                }
+//            }
     
             ////////// Step 4 //////////
             stage('Deploy to test') {
