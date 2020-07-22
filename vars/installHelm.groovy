@@ -2,8 +2,6 @@
     Helm install
  */
 def call () {
-    echo "Installing ${release} in ${namespace}"
-
     script {
         sh """
             apk add curl
