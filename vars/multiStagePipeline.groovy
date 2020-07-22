@@ -209,7 +209,7 @@ def call(body) {
                 steps {
                     script {
                         // Remove release if exists
-                        helmDelete (namespace, "${ID}", test)
+                        helmDelete (namespace, "${ID}", "test")
                     }
                 }
             }
