@@ -91,7 +91,9 @@ def call(body) {
             ////////// Step 2 //////////
             stage('Build and tests') {
                 steps {
-                    myapp = BuildDockerImage()
+                    script {
+                        myapp = BuildDockerImage()
+                    }
                 }
             }
     
