@@ -85,7 +85,8 @@ def call(body) {
     			ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
                         echo "env"
-                        echo " Do you we have sparse checkout path ${SPARSE_PATH}"
+                        echo " Do you we have sparse checkout path ${WORKSPACE}"
+                        sh("ls -la")
                     }
                 }
             }
