@@ -57,7 +57,7 @@ def call(body) {
         }
     
         //agent any
-        agent { customeWrokspace "${PROJECT_DIR}" }
+        agent { label { label "" customWrokspace "${PROJECT_DIR}" } }
     
         // Pipeline stages
         stages {
