@@ -4,7 +4,9 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = pipelineParams
     body()
+    // Get Jenkinsfile path from the project
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
+    // Obtain only the Project DIR so this will be our working directory
     def PROJECT_DIR = new File(currentScriptPath).parent
    
     /*
@@ -54,7 +56,8 @@ def call(body) {
     */
         }
     
-        agent any
+        //agent any
+        agent any { customeWrokspace "${PROJECT_DIR}" }
     
         // Pipeline stages
         stages {
@@ -96,7 +99,7 @@ def call(body) {
             ////////// Step 2 //////////
             stage('Build and tests') {
                 steps {
-                    dir("${PROJECT_DIR}") {
+        //            dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 echo "Building application and Docker image"
@@ -114,7 +117,7 @@ def call(body) {
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
                         }
-                    }
+          //          }
                 }
             }
             ////////// Step 3 //////////
