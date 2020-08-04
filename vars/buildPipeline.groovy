@@ -1,3 +1,4 @@
+
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def pipelineParams= [:]
@@ -8,17 +9,17 @@ def call(body) {
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
     // Obtain only the Project DIR so this will be our working directory
     def PROJECT_DIR = new File(currentScriptPath).parent
-   
+
     /*
         This is the main pipeline section with the stages of the CI/CD
      */
     pipeline {
-    
+
         options {
             // Build auto timeout
             timeout(time: 60, unit: 'MINUTES')
         }
-    
+
         // Some global default variables
         environment {
             IMAGE_NAME = "${pipelineParams.SERVICE_NAME}"
@@ -35,12 +36,12 @@ def call(body) {
             namespace = 'labs-createstudio'
             //PROJECT_DIR = sh("dirname ${currentScriptPath}")
         }
-    
+
         parameters {
 //            string (name: 'GIT_BRANCH',           defaultValue: 'feature/JAR_jenkinslib',  description: 'Git branch to build')
             booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
-    
-    
+
+
             // The commented out parameters are for optionally using them in the pipeline.
             // In this example, the parameters are loaded from file ${JENKINS_HOME}/parameters.groovy later in the pipeline.
             // The ${JENKINS_HOME}/parameters.groovy can be a mounted secrets file in your Jenkins container.
@@ -55,56 +56,33 @@ def call(body) {
             string (name: 'HELM_PSW',         defaultValue: 'password',                                description: 'Your helm repository password')
     */
         }
-    
-        //agent any
-        agent {
-            label {
-                label ""
-                customWorkspace "${PROJECT_DIR}"
-            }
-        }
-    
+
+        agent any
+
         // Pipeline stages
         stages {
-    
+
             ////////// Step 1 //////////
             stage('Git clone and setup') {
                 steps {
-                    // Validate kubectl
-                    //sh "kubectl cluster-info"
-    
-                    // Init helm client
-                    //sh "helm init"
-    
-                    // Make sure parameters file exists
-                    //script {
-                    //    if (! fileExists("${PARAMETERS_FILE}")) {
-                    //        echo "ERROR: ${PARAMETERS_FILE} is missing!"
-                    //    }
-                    //}
-    
-                    // Load Docker registry and Helm repository configurations from file
-                    //load "${JENKINS_HOME}/parameters.groovy"
-    
                     echo "DOCKER_REG is ${DOCKER_REG}"
                     echo "HELM_REPO  is ${HELM_REPO}"
-    
+
                     // Define a unique name for the tests container and helm release
                     script {
                         branch = GIT_BRANCH.replaceAll('/', '-').replaceAll('\\*', '-')
                         NAME_ID = "${IMAGE_NAME}-${BRANCH_NAME}"
-    			ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
+                        ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
-                        echo " Do you we have sparse checkout path ${PROJECT_DIR}"
-                        sh("ls -la")
+                        echo "Project DIR = ${PROJECT_DIR}"
                     }
                 }
             }
-    
+
             ////////// Step 2 //////////
             stage('Build and tests') {
                 steps {
-        //            dir("${PROJECT_DIR}") {
+                    dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 echo "Building application and Docker image"
@@ -122,69 +100,77 @@ def call(body) {
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
                         }
-          //          }
+                    }
                 }
             }
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
                 steps {
-                   container('docker') {
-                        script {
-                            echo "Packing helm chart"
-                            PackageHelmChart()
-                            echo "Pushing helm chart"
-                            docker.image('google/cloud-sdk:alpine').inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                pushDockerImage()
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                echo "Packing helm chart"
+                                PackageHelmChart()
+                                echo "Pushing helm chart"
+                                docker.image('google/cloud-sdk:alpine').inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    pushDockerImage()
+                                }
                             }
                         }
                     }
                 }
             }
-    
+
             ////////// Step 4 //////////
             stage('Deploy to TEST') {
                 steps {
-                    container('docker') {
-                        script {
-                            env = 'test'
-                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                            installHelm()
-                            sh("helm repo add chartmuseum ${HELM_REPO}")
-                            sh("helm repo update")
-                            // Remove release if exists
-                            helmDelete (namespace, "${ID}", env)
-                            // Deploy with helm
-                            echo "Deploying"
-                            helmInstall(namespace, "${ID}", env)
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                env = 'test'
+                                echo "Deploying application ${ID} to ${env} kubernetes cluster "
+                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                installHelm()
+                                sh("helm repo add chartmuseum ${HELM_REPO}")
+                                sh("helm repo update")
+                                // Remove release if exists
+                                helmDelete (namespace, "${ID}", env)
+                                // Deploy with helm
+                                echo "Deploying"
+                                helmInstall(namespace, "${ID}", env)
+                            }
                         }
                     }
                 }
             }
-    
+
             stage('Cleanup Test') {
                 steps {
-                    script {
-                        // Remove release if exists
-                        helmDelete (namespace, "${ID}", "test")
+                    dir("${PROJECT_DIR}") {
+                        script {
+                            // Remove release if exists
+                            helmDelete (namespace, "${ID}", "test")
+                        }
                     }
                 }
             }
             stage('Deploy to STAGING') {
                 steps {
-                    container('docker') {
-                        script {
-                            env = 'staging'
-                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                            installHelm()
-                            sh("helm repo add chartmuseum ${HELM_REPO}")
-                            sh("helm repo update")
-                            // Remove release if exists
-                            helmDelete (namespace, "${ID}", env)
-                            // Deploy with helm
-                            echo "Deploying"
-                            helmInstall(namespace, "${ID}", env)
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                env = 'staging'
+                                echo "Deploying application ${ID} to ${env} kubernetes cluster "
+                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                                installHelm()
+                                sh("helm repo add chartmuseum ${HELM_REPO}")
+                                sh("helm repo update")
+                                // Remove release if exists
+                                helmDelete (namespace, "${ID}", env)
+                                // Deploy with helm
+                                echo "Deploying"
+                                helmInstall(namespace, "${ID}", env)
+                            }
                         }
                     }
                 }
