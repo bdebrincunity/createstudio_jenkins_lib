@@ -5,6 +5,7 @@ def call(body) {
     body.delegate = pipelineParams
     body()
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
+    def PROJECT_DIR = new File(currentScriptPath).parent
    
     /*
         This is the main pipeline section with the stages of the CI/CD
@@ -30,7 +31,7 @@ def call(body) {
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
-            PROJECT_DIR = sh("dirname ${currentScriptPath}")
+            //PROJECT_DIR = sh("dirname ${currentScriptPath}")
         }
     
         parameters {
