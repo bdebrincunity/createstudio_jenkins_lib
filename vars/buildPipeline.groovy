@@ -111,7 +111,7 @@ def call(body) {
                             script {
                                 echo "Packing helm chart"
                                 PackageHelmChart()
-                                echo "Pushing helm chart"
+                                echo "Pushing Docker chart"
                                 docker.image('google/cloud-sdk:alpine').inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     pushDockerImage()
                                 }

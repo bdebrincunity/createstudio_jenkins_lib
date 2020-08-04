@@ -1,3 +1,3 @@
 def call(def filename, def bucket){
-    googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "${WORKSPACE}"
+    googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "${PROJECT_DIR}"
 }
