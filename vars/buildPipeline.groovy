@@ -57,7 +57,12 @@ def call(body) {
         }
     
         //agent any
-        agent { label { label "" customWorkspace "${PROJECT_DIR}" } }
+        agent {
+            label {
+                label ""
+                customWorkspace "${PROJECT_DIR}"
+            }
+        }
     
         // Pipeline stages
         stages {
