@@ -30,7 +30,7 @@ def call(body) {
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
 
-            def currentScriptPath = new File(currentBuild.rawBuild.parent.definition.scriptPath).parent
+            currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
         }
     
         parameters {
