@@ -19,7 +19,6 @@ def call(body) {
         environment {
             IMAGE_NAME = "${pipelineParams.SERVICE_NAME}"
             TEST_LOCAL_PORT = 8080
-            DEPLOY_PROD = false
             DOCKER_TAG = 'dev'
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
@@ -84,8 +83,8 @@ def call(body) {
                         NAME_ID = "${IMAGE_NAME}-${BRANCH_NAME}"
     			ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
-                        sh("env")
-                        sh("Do you we have sparse checkout path ${SPARSE_PATH}")
+                        echo "env"
+                        echo " Do you we have sparse checkout path ${SPARSE_PATH}"
                     }
                 }
             }
