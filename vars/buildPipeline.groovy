@@ -4,6 +4,7 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = pipelineParams
     body()
+    def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
    
     /*
         This is the main pipeline section with the stages of the CI/CD
@@ -29,8 +30,6 @@ def call(body) {
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
-
-            currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
         }
     
         parameters {
