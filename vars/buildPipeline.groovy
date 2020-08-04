@@ -32,7 +32,7 @@ def call(body) {
         }
     
         parameters {
-            string (name: 'GIT_BRANCH',           defaultValue: 'feature/JAR_jenkinslib',  description: 'Git branch to build')
+//            string (name: 'GIT_BRANCH',           defaultValue: 'feature/JAR_jenkinslib',  description: 'Git branch to build')
             booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
     
     
@@ -84,6 +84,8 @@ def call(body) {
                         NAME_ID = "${IMAGE_NAME}-${BRANCH_NAME}"
     			ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
+                        echo "env"
+                        echo " Do you we have sparse checkout path ${SPARSE_PATH}"
                     }
                 }
             }
