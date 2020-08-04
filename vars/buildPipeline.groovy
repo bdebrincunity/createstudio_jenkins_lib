@@ -30,7 +30,7 @@ def call(body) {
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
-            PROJECT_DIR = "dirname ${currentScriptPath}"
+            PROJECT_DIR = sh("dirname ${currentScriptPath}")
         }
     
         parameters {
