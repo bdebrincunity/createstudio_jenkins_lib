@@ -29,6 +29,8 @@ def call(body) {
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
+
+            def currentScriptPath = new File(currentBuild.rawBuild.parent.definition.scriptPath).parent
         }
     
         parameters {
@@ -85,7 +87,7 @@ def call(body) {
     			ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
                         echo sh(returnStdout: true, script: 'env')
-                        echo " Do you we have sparse checkout path ${SPARSE_PATH}"
+                        echo " Do you we have sparse checkout path ${currentScriptPath}"
                         sh("ls -la")
                     }
                 }
