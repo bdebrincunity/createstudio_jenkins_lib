@@ -9,7 +9,7 @@ def call (def namespace, def release, def env) {
     script {
         sh "helm repo add helm ${HELM_REPO}; helm repo update"
         sh """
-            helm upgrade --install ${release} ./helm --namespace ${namespace} \
+            helm upgrade --install ${release} --set service_name=${release} ./helm --namespace ${namespace} \
                 --kubeconfig ${KUBE_CNF}
         """
         sh "sleep 5"
