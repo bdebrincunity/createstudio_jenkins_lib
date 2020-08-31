@@ -61,8 +61,8 @@ def call(body) {
                             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                             echo "Global ID set to ${ID}"
                             docker.image("jgpelaez/git-lfs").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                sh("git lfs init")
-                                sh("git lfs pull")
+                                sh("GIT_TRACE=1 git lfs init")
+                                sh("GIT_TRACE=1 git lfs pull")
                             }
                         }
                    }
