@@ -151,7 +151,7 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             sh("files/build.sh ${type}")
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME} | sed -e 's/\\.\\///g'").trim()
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         if ("${type}" == 'mac') {
@@ -185,7 +185,7 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             sh("files/build.sh ${type}")
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME} | sed -e 's/\\.\\///g'").trim()
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
