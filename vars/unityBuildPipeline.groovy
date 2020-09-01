@@ -151,15 +151,7 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             sh("files/build.sh ${type}")
                                         }
-<<<<<<< Updated upstream
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep osx | sed -e 's/\\.\\///g'").trim()
-=======
-                                            //sh("echo '    StrictHostKeyChecking no' >> /etc/ssh/ssh_config")
-                                            //sh("cat /etc/ssh/ssh_config")
-                                            //sh("eval \$(ssh-agent)")
-                                            //sh("files/build.sh ${type}")
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME} | sed -e 's/\\.\\///g'").trim()
->>>>>>> Stashed changes
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         if ("${type}" == 'mac') {
@@ -192,15 +184,8 @@ def call(body) {
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             sh("files/build.sh ${type}")
-<<<<<<< Updated upstream
-=======
-                                            project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME} | sed -e 's/\\.\\///g'").trim()
-                                            sh("ls -la ${project}")
-                                            echo ("Built ${project} !")
-                                            archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
->>>>>>> Stashed changes
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${type} | sed -e 's/\\.\\///g'").trim()
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
