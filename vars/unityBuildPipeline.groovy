@@ -1,3 +1,15 @@
+import java.text.SimpleDateFormat
+// Helper functions
+
+// Upload to gcp
+def uploadFile(String filename, String bucket, String strip_dir){
+    googleStorageUpload bucket: "gs://${bucket}", credentialsId: 'sa-createstudio-buckets', pattern: "${filename}", pathPrefix: "${strip_dir}"
+}
+// Download from gcp
+def downloadFile(String filename, String bucket){
+    googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
+}
+
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def pipelineParams= [:]
@@ -25,19 +37,20 @@ def call(body) {
         environment {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
-            TEST_MY_LIST = "${pipelineParams.test_list}"
-            TEST_LOCAL_PORT = 8080
+            SERVER_PORT = "${pipelineParams.SERVER_PORT}"
+            TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             DEPLOY_PROD = false
-            DOCKER_TAG = 'dev'
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
+            NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
+            KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
+            ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BuildID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
-            //GIT_LFS_SKIP_SMUDGE = 1
             GIT_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no"
         }
 
@@ -51,12 +64,9 @@ def call(body) {
         // Pipeline stages
         stages {
             ////////// Step 1 //////////
-            stage('Update SCM Variables') {
+            stage('SCM Variables') {
                 steps {
                     script {
-                        branch = GIT_BRANCH.replaceAll('/', '-').replaceAll('\\*', '-')
-                        NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
-                        ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
                         def listName = PROJECT_TYPE.split(",")
                         listName.each { item ->
@@ -82,7 +92,7 @@ def call(body) {
                    }
                 }
             }
-            // Parallel builds work, but share workspace which doesn't play nice with unity
+            // Parallel builds work, but share workspace which Unity complains about, need to figure out how to separate into different workspaces
            /*
             stage('Parallel Unity Build') {
                 steps {
@@ -141,7 +151,6 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                //AuthenticateGCP(gkeStrCredsID: 'sa-gcp-jenkins')
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -175,7 +184,6 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                AuthenticateGCP(gkeStrCredsID: 'sa-gcp-jenkins')
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -199,7 +207,7 @@ def call(body) {
             ////////// Step 2 //////////
             stage('Build WebGL Docker') {
                 environment {
-                    home = "${WORKSPACE}" // Needed so that AuthenticateGCloud
+                    type = "webgl"
                 }
                 when {
                     expression { "${PROJECT_TYPE}".contains('webgl') }
@@ -208,38 +216,122 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                //AuthenticateGCP(gkeStrCredsID: "sa-gcp-jenkins")
-                                withCredentials([string(credentialsId: 'sa-gcp-jenkins', variable: "GC_KEY")]) {
-                                  sh 'echo "$GC_KEY" | tee key.json'
+                                withCredentials([
+                                    [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
+                                ]){
+                                    docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                        sshagent (credentials: ['ssh_createstudio']) {
+                                            sh("files/build.sh ${type}")
+                                        }
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${type} | sed -e 's/\\.\\///g'").trim()
+                                        sh("ls -la ${project}")
+                                        echo ("Built ${project} !")
+                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                    }
                                 }
-                                // This needs to be a bit simpler eventually.....
-                                docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -v /var/run/docker.sock:/var/run/docker.sock -it") {
-                                    sh """
-                                      gcloud auth activate-service-account --key-file=key.json
-                                      yes | gcloud auth configure-docker
-                                      docker stop ${ID} || true
-                                      docker rm ${ID} || true
-                                      docker create --name ${ID} -w /${PROJECT_TYPE} nginx:stable
-                                      docker cp files/webgl.conf ${ID}:/etc/nginx/conf.d/
-                                      docker start ${ID}
-                                      docker exec ${ID} rm -f /etc/nginx/conf.d/default.conf
-                                      docker stop ${ID}
-				                              docker cp ${project}/. ${ID}:/${PROJECT_TYPE}
-                                      docker commit ${ID} gcr.io/unity-labs-createstudio-test/${ID}
-                                      docker push gcr.io/unity-labs-createstudio-test/${ID}
+                                sh("docker rm -f ${DOCKER_REG}/${ID} || true ")
+                                sh("docker rm -f ${ID} || true ")
+                                sh("docker rmi -f ${DOCKER_REG}/${ID} || true ")
+                                sh("docker rmi -f ${ID} || true ")
+                                sh """
+                                   docker create --name ${ID} -w /${PROJECT_TYPE} nginx:stable
+                                   docker cp files/webgl.conf ${ID}:/etc/nginx/conf.d/
+                                   docker start ${ID}
+                                   docker exec ${ID} rm -f /etc/nginx/conf.d/default.conf
+                                   docker stop ${ID}
+                                   docker cp ${project}/. ${ID}:/${PROJECT_TYPE}
                                    """
-                                }
+                                myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${SERVICE_NAME}:${ID}").trim()
+                                // Save this below for local testing in the future
+                                //echo "Starting ${ID} container"
+                                //sh "docker run --detach --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
+
+                                // Grab IP from container
+                                //host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
                         }
                     }
                 }
             }
+            stage('ENV TEST - Publish Docker and Helm artifacts') {
+                environment {
+                    home = "${WORKSPACE}" 
+                    env = 'test'
+                }
+                when {
+                    expression { "${PROJECT_TYPE}".contains('webgl')  }
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        script {
+                            echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}"
+                            DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
+                            echo "Packaging helm chart"
+                            PackageHelmChart(chartDir: "./helm")
+                            echo "Pushing helm chart"
+                            UploadHelm(chartDir: "./helm")
+                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                            ApplyHelmChart(releaseName: "${ID}", chartName: "${SERVICE_NAME}", chartValuesFile: "helm/values.yaml", extraParams: "--kubeconfig ${KUBE_CNF} --namespace ${namespace} --set image.repository=${DOCKER_REG}/${SERVICE_NAME} --set image.tag=${ID}")
+                        }
+                    }
+                }
+            }
+            /// Cleanup an deployments outside of the 3 main branches
+            stage('Cleanup') {
+                environment {
+                    env = 'test'
+                }
+                when {
+                    expression { "${PROJECT_TYPE}".contains('webgl')  }
+                    not { 
+                        anyOf {
+                            expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                        }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        script {
+                            // Remove release if exists
+                            scriptToRun = "[ -z \"\$(helm ls --kubeconfig ${KUBE_CNF} | grep ${ID} 2>/dev/null)\" ] || helm delete ${ID} --kubeconfig ${KUBE_CNF}"
+                            RunInDocker(dockerImage: "kiwigrid/gcloud-kubectl-helm", script: scriptToRun, name: "Remove Helm Release")
+                        }
+                    }
+                }
+            }
+            // Run the 3 tests from the shared library on the currently running Docker container
+            /*stage('Local tests') {
+                when {
+                    expression { "${PROJECT_TYPE}".contains('webgl') }
+                }
+                parallel {
+                    stage('Curl http_code') {
+                        steps {
+                            curlRun ("http://${host_ip}", 'http_code')
+                        }
+                    }
+                    stage('Curl total_time') {
+                        steps {
+                            curlRun ("http://${host_ip}", 'total_time')
+                        }
+                    }
+                    stage('Curl size_download') {
+                        steps {
+                            curlRun ("http://${host_ip}", 'size_download')
+                        }
+                    }
+                }
+            }*/
         }
         post {
-            //always {
-            //    echo 'One way or another, I have finished'
-            //    deleteDir() /* clean up our workspace */
-            //}
+            always {
+                echo 'One way or another, I have finished'
+            }
             success {
                 echo 'I succeeded!'
             }
@@ -248,7 +340,7 @@ def call(body) {
             //}
             failure {
                 echo 'I failed :('
-                archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false 
+                archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
             }
             //changed {
             //    echo 'Things were different before...'
