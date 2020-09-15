@@ -90,6 +90,11 @@ def call(body) {
             }
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
@@ -107,6 +112,11 @@ def call(body) {
             }
             ////////// Step 4 //////////
             stage('Deploy to TEST') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
@@ -127,18 +137,12 @@ def call(body) {
                     }
                 }
             }
-
-            stage('Cleanup Test') {
-                steps {
-                    dir("${PROJECT_DIR}") {
-                        script {
-                            // Remove release if exists
-                            helmDelete (namespace, "${ID}", "test")
-                        }
+            stage('Deploy to STAGING') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
                     }
                 }
-            }
-            stage('Deploy to STAGING') {
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
