@@ -1,9 +1,6 @@
 import java.text.SimpleDateFormat
 // Helper functions
 
-def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
-def date = new Date()
-
 // Upload to gcp
 def uploadFile(String filename, String bucket, String strip_dir){
     googleStorageUpload bucket: "gs://${bucket}", credentialsId: 'sa-createstudio-buckets', pattern: "${filename}", pathPrefix: "${strip_dir}"
@@ -19,6 +16,8 @@ def getVersion(){
     * always bump PATCH version
     * Then grab the new version and return to pipeline */
     status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
+    def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
+    def date = new Date()
     def LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
