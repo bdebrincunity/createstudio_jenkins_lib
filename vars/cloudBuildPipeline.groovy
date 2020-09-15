@@ -104,7 +104,7 @@ def call(body) {
                             script {
                                 PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    VERSION = getVersion()
+                                    def VERSION = getVersion()
                                     echo "Global ID set to ${ID}"
                                     def listName = PROJECT_TYPE.split(",")
                                     listName.each { item ->
