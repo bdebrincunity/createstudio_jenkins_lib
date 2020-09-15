@@ -23,7 +23,7 @@ def getVersion(){
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     if ( LATEST_VERSION == "" ) {
         echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0" 
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0+build.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.0.1"
     }
