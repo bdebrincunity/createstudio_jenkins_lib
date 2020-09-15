@@ -25,7 +25,7 @@ def getVersion(){
     println LATEST_VERSION.getClass()
     sh("echo ${LATEST_VERSION}")
     //sh("echo ${VERSION}")
-    if ("${LATEST_VERSION}") {
+    if (env.LATEST_VERSION) {
         sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.0.1"
