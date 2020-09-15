@@ -19,13 +19,13 @@ def getVersion(){
     * always bump PATCH version
     * Then grab the new version and return to pipeline */
     status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
-    def LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true, returnStatus: true).trim()
+    def LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     println LATEST_VERSION.getClass()
     sh("echo ${LATEST_VERSION}")
     //sh("echo ${VERSION}")
-    if ( LATEST_VERSION != 0 ) {
+    if ( LATEST_VERSION == "" ) {
         sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.0.1"
