@@ -18,14 +18,14 @@ def getVersion(){
     status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
     def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
     def date = new Date()
-    def LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
+    def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     if ( LATEST_VERSION == "" ) {
         echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0" 
         sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0+build.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
-        LATEST_VERSION = "0.0.1"
+        LATEST_VERSION = "0.1.0+build.1"
     }
     // Need to implement parameters here, this does nothing at the moment other than bumping patch
     // Maybe we bump on certain PR merge
@@ -159,11 +159,11 @@ def call(body) {
             }
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
-                when {
+                /*when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
                     }
-                }
+                }*/
                 steps {
                     dir("${PROJECT_DIR}") {
                             script {
