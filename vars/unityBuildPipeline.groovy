@@ -26,7 +26,7 @@ def getVersion(){
     sh("echo ${LATEST_VERSION}")
     //sh("echo ${VERSION}")
     if ( "${LATEST_VERSION}" == null ) {
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.0.1"
     }
@@ -43,7 +43,7 @@ def getVersion(){
     }
     new_version = version + ".${BUILD_NUMBER}"
     // Always run bumping patch version
-    sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
+    sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
     return new_version
 }
 
@@ -82,7 +82,7 @@ def call(body) {
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
-            UUID = UUID.randomUUID().toString()
+            BUILD_UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
