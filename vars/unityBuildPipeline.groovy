@@ -1,6 +1,9 @@
 import java.text.SimpleDateFormat
 // Helper functions
 
+def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
+def date = new Date()
+
 // Upload to gcp
 def uploadFile(String filename, String bucket, String strip_dir){
     googleStorageUpload bucket: "gs://${bucket}", credentialsId: 'sa-createstudio-buckets', pattern: "${filename}", pathPrefix: "${strip_dir}"
@@ -8,6 +11,40 @@ def uploadFile(String filename, String bucket, String strip_dir){
 // Download from gcp
 def downloadFile(String filename, String bucket){
     googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
+}
+
+def getVersion(){
+    /* Grab the current version
+    * Check if we want to bump MAJOR or MINOR, if not then we will
+    * always bump PATCH version
+    * Then grab the new version and return to pipeline */
+    status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
+    LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
+    // Remove build number so we can semver. Will add back new build number after
+    //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
+    sh("BUILD_ID -> ${BUILD_ID}")
+    sh("echo ${LATEST_VERSION}")
+    //sh("echo ${VERSION}")
+    if ( "${LATEST_VERSION}" == null ) {
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
+        sh ("mv ${buildManifest}2 ${buildManifest}")
+        LATEST_VERSION = "0.0.1"
+    }
+    // Need to implement parameters here, this does nothing at the moment other than bumping patch
+    // Maybe we bump on certain PR merge
+    if (env.BUMP_MAJOR == true){
+        version = sh(script: "semver bump major ${LATEST_VERSION}", returnStdout: true).trim()
+    }
+    else if (env.BUMP_MINOR  == true){
+        version = sh(script: "semver bump minor ${LATEST_VERSION}", returnStdout: true).trim()
+    }
+    else {
+        version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
+    }
+    new_version = version + ".${BUILD_NUMBER}"
+    // Always run bumping patch version
+    sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
+    return new_version
 }
 
 def call(body) {
@@ -45,7 +82,7 @@ def call(body) {
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
-            BuildID = UUID.randomUUID().toString()
+            UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
@@ -68,6 +105,7 @@ def call(body) {
                 steps {
                     script {
                         echo "Global ID set to ${ID}"
+                        VERSION = getVersion()
                         def listName = PROJECT_TYPE.split(",")
                         listName.each { item ->
                             echo "${item}"
