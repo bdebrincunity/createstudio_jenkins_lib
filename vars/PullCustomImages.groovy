@@ -17,7 +17,7 @@ def call(Map args = [:]) {
         gcloud auth activate-service-account --key-file=key.json
         yes | gcloud auth configure-docker
         rm key.json
-        docker pull gcr.io/unity-labs-createstudio-test/unity_2019.4.3
+        docker pull gcr.io/unity-labs-createstudio-test/base_tools
         """
 
     DockerUtils.runInDocker(context, mergedArgs.dockerImage, script)
