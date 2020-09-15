@@ -22,7 +22,6 @@ def getVersion(){
     LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
-    sh("BUILD_ID -> ${BUILD_ID}")
     sh("echo ${LATEST_VERSION}")
     //sh("echo ${VERSION}")
     if ( "${LATEST_VERSION}" == null ) {
