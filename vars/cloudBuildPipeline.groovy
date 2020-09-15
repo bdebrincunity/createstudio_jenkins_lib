@@ -21,11 +21,9 @@ def getVersion(){
     def LATEST_VERSION = sh(script: "jq '.docker.\"${SERVICE_NAME}\"[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
-    println LATEST_VERSION.getClass()
-    sh("echo ${LATEST_VERSION}")
-    //sh("echo ${VERSION}")
     if ( LATEST_VERSION == "" ) {
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.0.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
+        echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0" 
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.0.1"
     }
@@ -40,7 +38,7 @@ def getVersion(){
     else {
         version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
     }
-    new_version = version + ".${BUILD_NUMBER}"
+    new_version = version + "+build.${BUILD_NUMBER}"
     // Always run bumping patch version
     sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
     return new_version
@@ -199,6 +197,35 @@ def call(body) {
                         }
                     }
                 }
+            }
+        }
+        post {
+            //always {
+            //    echo 'One way or another, I have finished'
+            //    cleanWs() /* clean up our workspace */
+            //}
+            success {
+                echo 'I succeeded!'
+                script {
+                    if ( "${BRANCH_NAME}" == 'develop' ) {
+                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                    } else if ( "${BRANCH_NAME}" == 'main' ) {
+                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                    }
+                    } else if ( "${BRANCH_NAME}" == 'release' ) {
+                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                    }
+                }
+            }
+            unstable {
+                echo 'I am unstable :/'
+            }
+            failure {
+                echo 'I failed :('
+                archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
+            }
+            changed {
+                echo 'Things were different before...'
             }
         }
     }
