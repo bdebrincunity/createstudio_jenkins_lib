@@ -100,14 +100,20 @@ def call(body) {
         // Pipeline stages
         stages {
             ////////// Step 1 //////////
-            stage('SCM Variables') {
+            stage('Update SCM Variables') {
                 steps {
-                    script {
-                        echo "Global ID set to ${ID}"
-                        VERSION = getVersion()
-                        def listName = PROJECT_TYPE.split(",")
-                        listName.each { item ->
-                            echo "${item}"
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    VERSION = getVersion()
+                                    echo "Global ID set to ${ID}"
+                                    def listName = PROJECT_TYPE.split(",")
+                                    listName.each { item ->
+                                        echo "${item}"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
