@@ -211,7 +211,6 @@ def call(body) {
                         uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     } else if ( "${BRANCH_NAME}" == 'main' ) {
                         uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                    }
                     } else if ( "${BRANCH_NAME}" == 'release' ) {
                         uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     }
