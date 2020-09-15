@@ -207,6 +207,7 @@ def call(body) {
             success {
                 echo 'I succeeded!'
                 script {
+                    uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     if ( "${BRANCH_NAME}" == 'develop' ) {
                         uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     } else if ( "${BRANCH_NAME}" == 'main' ) {
