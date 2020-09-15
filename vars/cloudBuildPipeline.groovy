@@ -105,6 +105,7 @@ def call(body) {
                                 PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     def CURRENT_VERSION = getVersion()
+                                    sh("Version is ${env.CURRENT_VERSION}")
                                     echo "Global ID set to ${ID}"
                                     def listName = PROJECT_TYPE.split(",")
                                     listName.each { item ->
@@ -122,7 +123,6 @@ def call(body) {
                     container('cloudbees-jenkins-worker') {
                         script {
                             sshagent (credentials: ['ssh_createstudio']) {
-                                sh("Version is ${env.CURRENT_VERSION}")
                                 // Update url to use ssh instead of https
                                 sh("git config --global --add url.\"git@github.com:\".insteadOf \"https://github.com/\"")
                                 // Install LFS hooks in repo
