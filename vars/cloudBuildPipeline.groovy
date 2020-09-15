@@ -66,27 +66,32 @@ def call(body) {
         options {
             // Build auto timeout
             timeout(time: 60, unit: 'MINUTES')
+            ansiColor('xterm')
         }
 
         // Some global default variables
         environment {
-            IMAGE_NAME = "${pipelineParams.SERVICE_NAME}"
-            TEST_LOCAL_PORT = 8080
+            SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
+            PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
+            SERVER_PORT = "${pipelineParams.SERVER_PORT}"
+            TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             DEPLOY_PROD = false
-            DOCKER_TAG = 'dev'
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
-            BuildID = UUID.randomUUID().toString()
+            NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
+            KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
+            ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
+            UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
-            //PROJECT_DIR = sh("dirname ${currentScriptPath}")
+            GIT_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no"
         }
 
         parameters {
-//            string (name: 'GIT_BRANCH',           defaultValue: 'feature/JAR_jenkinslib',  description: 'Git branch to build')
+    //        string (name: 'GIT_BRANCH',           defaultValue: 'main',  description: 'Git branch to build')
             booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
         }
 
@@ -94,24 +99,36 @@ def call(body) {
 
         // Pipeline stages
         stages {
-
             ////////// Step 1 //////////
-            stage('Git clone and setup') {
+            stage('SCM Variables') {
                 steps {
-                    echo "DOCKER_REG is ${DOCKER_REG}"
-                    echo "HELM_REPO  is ${HELM_REPO}"
-                    VERSION = getVersion()
-                    // Define a unique name for the tests container and helm release
                     script {
-                        branch = GIT_BRANCH.replaceAll('/', '-').replaceAll('\\*', '-')
-                        NAME_ID = "${IMAGE_NAME}-${BRANCH_NAME}"
-                        ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
                         echo "Global ID set to ${ID}"
-                        echo "Project DIR = ${PROJECT_DIR}"
+                        VERSION = getVersion()
+                        def listName = PROJECT_TYPE.split(",")
+                        listName.each { item ->
+                            echo "${item}"
+                        }
                     }
                 }
             }
-
+            ////////// Step 2 //////////
+            stage('Update LFS') {
+                steps {
+                    container('cloudbees-jenkins-worker') {
+                        script {
+                            sshagent (credentials: ['ssh_createstudio']) {
+                                // Update url to use ssh instead of https
+                                sh("git config --global --add url.\"git@github.com:\".insteadOf \"https://github.com/\"")
+                                // Install LFS hooks in repo
+                                sh("git lfs install")
+                                // Pull LFS files
+                                sh("git lfs pull origin")
+                            }
+                        }
+                   }
+                }
+            }
             ////////// Step 2 //////////
             stage('Build and tests') {
                 steps {
@@ -145,21 +162,23 @@ def call(body) {
                 }
                 steps {
                     dir("${PROJECT_DIR}") {
-                        container('docker') {
                             script {
-                                echo "Packing helm chart"
-                                PackageHelmChart()
-                                echo "Pushing Docker chart"
-                                docker.image('google/cloud-sdk:alpine').inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    pushDockerImage()
-                                }
-                            }
+                            echo "Packaging helm chart"
+                            PackageHelmChart(chartDir: "./helm")
+                            echo "Pushing helm chart"
+                            UploadHelm(chartDir: "./helm")
+                            echo "Pushing Docker chart"
+                            DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
                         }
                     }
                 }
             }
             ////////// Step 4 //////////
             stage('Deploy to TEST') {
+                environment {
+                    home = "${WORKSPACE}"
+                    env = 'test'
+                }
                 when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
@@ -167,46 +186,10 @@ def call(body) {
                 }
                 steps {
                     dir("${PROJECT_DIR}") {
-                        container('docker') {
-                            script {
-                                env = 'test'
-                                echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                                installHelm()
-                                sh("helm repo add chartmuseum ${HELM_REPO}")
-                                sh("helm repo update")
-                                // Remove release if exists
-                                helmDelete (namespace, "${ID}", env)
-                                // Deploy with helm
-                                echo "Deploying"
-                                helmInstall(namespace, "${ID}", env)
-                            }
-                        }
-                    }
-                }
-            }
-            stage('Deploy to STAGING') {
-                when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
-                    }
-                }
-                steps {
-                    dir("${PROJECT_DIR}") {
-                        container('docker') {
-                            script {
-                                env = 'staging'
-                                echo "Deploying application ${ID} to ${env} kubernetes cluster "
-                                downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                                installHelm()
-                                sh("helm repo add chartmuseum ${HELM_REPO}")
-                                sh("helm repo update")
-                                // Remove release if exists
-                                helmDelete (namespace, "${ID}", env)
-                                // Deploy with helm
-                                echo "Deploying"
-                                helmInstall(namespace, "${ID}", env)
-                            }
+                        script {
+                            echo "Deploying application ${ID} to ${env} kubernetes cluster "
+                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
+                            ApplyHelmChart(releaseName: "${ID}", chartName: "${SERVICE_NAME}", chartValuesFile: "helm/values.yaml", extraParams: "--kubeconfig ${KUBE_CNF} --namespace ${namespace} --set image.repository=${DOCKER_REG}/${SERVICE_NAME} --set image.tag=${ID}")
                         }
                     }
                 }
