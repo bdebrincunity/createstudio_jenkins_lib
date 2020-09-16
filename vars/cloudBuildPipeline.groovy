@@ -103,7 +103,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
+                                //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     echo "Version is ${CURRENT_VERSION}"
