@@ -85,6 +85,7 @@ def call(body) {
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
             GIT_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no"
+            CURRENT_VERSION = getVersion()
         }
 
         parameters {
@@ -102,9 +103,9 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
+                                sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
+                                //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    CURRENT_VERSION = getVersion()
                                     echo "Version is ${CURRENT_VERSION}"
                                     echo "Global ID set to ${ID}"
                                     def listName = PROJECT_TYPE.split(",")
