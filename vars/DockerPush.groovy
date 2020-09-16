@@ -14,7 +14,7 @@ def call(Map args = [:]) {
 
     withEnv([
             "version=${sh([returnStdout: true, script: 'echo $CURRENT_VERSION']).trim()}",
-            "name_id=${sh([returnStdout: true, script: 'echo $NAME_ID']).toLowerCase()}",
+            "name_id=${sh([returnStdout: true, script: 'echo $ID']).trim()}",
             "registry=${sh([returnStdout: true, script: 'echo $DOCKER_REG']).trim()}",
             "revision=${sh([returnStdout: true, script: 'git log --format=\"%H\" -n 1']).trim()}",
             "committer=${sh([returnStdout: true, script: 'git log --format=\"%cn\" -n 1']).trim()}",
