@@ -72,7 +72,7 @@ def call(body) {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
-            TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
+            LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             DEPLOY_PROD = false
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
@@ -152,9 +152,9 @@ def call(body) {
                                 sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
 
                                 echo "Starting ${SERVICE_NAME} container"
-                                sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
+                                sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
 
-                                host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
+                                host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${LOCAL_PORT}" }\'')
                             }
                         }
                     }
