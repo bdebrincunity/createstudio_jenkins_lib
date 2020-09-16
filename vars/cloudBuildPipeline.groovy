@@ -85,7 +85,6 @@ def call(body) {
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
             GIT_SSH_COMMAND = "ssh -o StrictHostKeyChecking=no"
-            CURRENT_VERSION = "${VERSION}"
         }
 
         parameters {
@@ -163,6 +162,9 @@ def call(body) {
             }
             ////////// Step 3 //////////
             stage('Publish Docker and Helm') {
+                environment {
+                    CURRENT_VERSION = "${VERSION}"
+                }
                 /*when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
