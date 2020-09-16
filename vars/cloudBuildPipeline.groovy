@@ -23,25 +23,26 @@ def getVersion(){
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     if ( LATEST_VERSION == "" ) {
         echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0-build.${BUILD_NUMBER}" 
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
-        sh ("mv ${buildManifest}2 ${buildManifest}")
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} | sponge ${buildManifest}")
+        //sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.1.0-build.${BUILD_NUMBER}"
+        return LATEST_VERSION
+    } else {
+        // Need to implement parameters here, this does nothing at the moment other than bumping patch
+        // Maybe we bump on certain PR merge
+        if (env.BUMP_MAJOR == true){
+            version = sh(script: "semver bump major ${LATEST_VERSION}", returnStdout: true).trim()
+        }
+        else if (env.BUMP_MINOR  == true){
+            version = sh(script: "semver bump minor ${LATEST_VERSION}", returnStdout: true).trim()
+        }
+        else {
+            version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
+        }
+        new_version = version + "-build.${BUILD_NUMBER}"
+        sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
+        return new_version
     }
-    // Need to implement parameters here, this does nothing at the moment other than bumping patch
-    // Maybe we bump on certain PR merge
-    if (env.BUMP_MAJOR == true){
-        version = sh(script: "semver bump major ${LATEST_VERSION}", returnStdout: true).trim()
-    }
-    else if (env.BUMP_MINOR  == true){
-        version = sh(script: "semver bump minor ${LATEST_VERSION}", returnStdout: true).trim()
-    }
-    else {
-        version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
-    }
-    new_version = version + "-build.${BUILD_NUMBER}"
-    // Always run bumping patch version
-    sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
-    return new_version
 }
 
 def call(body) {
