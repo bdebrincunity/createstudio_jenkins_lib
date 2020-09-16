@@ -124,7 +124,6 @@ def call(body) {
                     container('cloudbees-jenkins-worker') {
                         script {
                             sshagent (credentials: ['ssh_createstudio']) {
-                                echo "Version is ${CURRENT_VERSION}"
                                 // Update url to use ssh instead of https
                                 sh("git config --global --add url.\"git@github.com:\".insteadOf \"https://github.com/\"")
                                 // Install LFS hooks in repo
