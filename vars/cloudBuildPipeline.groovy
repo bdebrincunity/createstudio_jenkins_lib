@@ -22,10 +22,10 @@ def getVersion(){
     // Remove build number so we can semver. Will add back new build number after
     //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     if ( LATEST_VERSION == "" ) {
-        echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0" 
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0+build.1\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
+        echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0-build.${BUILD_NUMBER}" 
+        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} > ${buildManifest}2")
         sh ("mv ${buildManifest}2 ${buildManifest}")
-        LATEST_VERSION = "0.1.0+build.${BUILD_NUMBER}"
+        LATEST_VERSION = "0.1.0-build.${BUILD_NUMBER}"
     }
     // Need to implement parameters here, this does nothing at the moment other than bumping patch
     // Maybe we bump on certain PR merge
@@ -38,7 +38,7 @@ def getVersion(){
     else {
         version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
     }
-    new_version = version + "+build.${BUILD_NUMBER}"
+    new_version = version + "-build.${BUILD_NUMBER}"
     // Always run bumping patch version
     sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
     return new_version
