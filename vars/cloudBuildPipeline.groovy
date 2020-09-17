@@ -174,7 +174,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                             script {
                             echo "Packaging helm chart"
-                            PackageHelmChart(chartDir: "./helm", args: "[--version ${CURRENT_VERSION}]")
+                            PackageHelmChart(chartDir: "./helm", extraParams: "--version ${CURRENT_VERSION}")
                             echo "Pushing helm chart"
                             UploadHelm(chartDir: "./helm")
                             echo "Pushing Docker chart"
