@@ -72,7 +72,7 @@ def call(body) {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
-            LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
+            TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             DEPLOY_PROD = false
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
