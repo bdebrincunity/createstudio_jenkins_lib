@@ -176,6 +176,7 @@ def call(body) {
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm", extraParams: "--version ${CURRENT_VERSION} --app-version ${CURRENT_VERSION}")
                             echo "Pushing helm chart"
+                            sh("ls -la")
                             UploadHelm(chartDir: "./helm")
                             echo "Pushing Docker chart"
                             DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
