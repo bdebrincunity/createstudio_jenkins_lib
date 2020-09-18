@@ -95,7 +95,7 @@ def call(body) {
                 }
             }
             ////////// Step 3 //////////
-            stage("Get ${SERVICE_NAME} Version") {
+            stage("Get Version") {
                 when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
