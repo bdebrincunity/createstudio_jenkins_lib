@@ -100,6 +100,9 @@ def call(body) {
         stages {
             ////////// Step 1 //////////
             stage('Update SCM Variables') {
+                environment {
+                    home = "${WORKSPACE}"
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
