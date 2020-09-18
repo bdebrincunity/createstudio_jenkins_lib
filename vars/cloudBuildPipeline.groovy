@@ -82,7 +82,7 @@ def call(body) {
             BUILD_UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
-            gcpBucketCredential = 'sa-createstudio-bucket'
+            gcpBucketCredential = 'sa-createstudio-buckets'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
