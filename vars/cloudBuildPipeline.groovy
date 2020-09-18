@@ -101,19 +101,15 @@ def call(body) {
         stages {
             ////////// Step 1 //////////
             stage('Update SCM Variables') {
-                environment {
-                    home = "${WORKSPACE}"
-                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
-                                sh("docker pull gcr.io/unity-labs-createstudio-test/basetools:1.0.0")
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    manifestDateCheck = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py")
-                                    println(manifestDateCheck) 
+                                    manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre) 
                                     VERSION = getVersion()
                                     echo "Version is ${VERSION}"
                                     echo "Global ID set to ${ID}"
@@ -213,6 +209,28 @@ def call(body) {
                     }
                 }
             }
+            stage('Update Version Manifest') {
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPost)
+                                    getVersion()
+                                    if ( manifestDateCheckPre != manifestDateCheckPost ) {
+                                        getVersion()
+                                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    } else {
+                                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
         }
         post {
             //always {
@@ -222,7 +240,6 @@ def call(body) {
             success {
                 echo 'I succeeded!'
                 script {
-                    uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     if ( "${BRANCH_NAME}" == 'develop' ) {
                         uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                     } else if ( "${BRANCH_NAME}" == 'main' ) {
