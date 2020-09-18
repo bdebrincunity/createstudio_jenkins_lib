@@ -10,37 +10,6 @@ def downloadFile(String filename, String bucket){
     googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
 }
 
-def getVersion(){
-    /* Grab the current version
-    * Check if we want to bump MAJOR or MINOR, if not then we will
-    * always bump PATCH version
-    * Then grab the new version and return to pipeline */
-    status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
-    def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
-    def date = new Date()
-    def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
-    if ( LATEST_VERSION == "" ) {
-        echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0-build.${BUILD_NUMBER}" 
-        sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} | sponge ${buildManifest}")
-        LATEST_VERSION = "0.1.0-build.${BUILD_NUMBER}"
-        return LATEST_VERSION
-    } else {
-        // Maybe we bump on certain PR merge?
-        if (env.BUMP_MAJOR == true){
-            version = sh(script: "semver bump major ${LATEST_VERSION}", returnStdout: true).trim()
-        }
-        else if (env.BUMP_MINOR  == true){
-            version = sh(script: "semver bump minor ${LATEST_VERSION}", returnStdout: true).trim()
-        }
-        else {
-            version = sh(script: "semver bump patch ${LATEST_VERSION}", returnStdout: true).trim()
-        }
-        new_version = version + "-build.${BUILD_NUMBER}"
-        sh ("jq '.docker.\"${SERVICE_NAME}\" += [{\"version\": \"${new_version}\", \"tags\": { \"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]' ${buildManifest} | sponge ${buildManifest}")
-        return new_version
-    }
-}
-
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def pipelineParams= [:]
@@ -99,23 +68,11 @@ def call(body) {
             ////////// Step 1 //////////
             stage('Update SCM Variables') {
                 steps {
-                    dir("${PROJECT_DIR}") {
-                        container('docker') {
-                            script {
-                                //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
-                                //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
-                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
-                                    println(manifestDateCheckPre)
-                                    VERSION = IncrementVersion()
-                                    echo "Version is ${VERSION}"
-                                    echo "Global ID set to ${ID}"
-                                    def listName = PROJECT_TYPE.split(",")
-                                    listName.each { item ->
-                                        echo "${item}"
-                                    }
-                                }
-                            }
+                    script {
+                        echo "Global ID set to ${ID}"
+                        def listName = PROJECT_TYPE.split(",")
+                        listName.each { item ->
+                            echo "${item}"
                         }
                     }
                 }
@@ -138,21 +95,52 @@ def call(body) {
                 }
             }
             ////////// Step 3 //////////
+            stage("Get ${SERVICE_NAME} Version") {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
+                                //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre)
+                                    VERSION = IncrementVersion()
+                                    echo "Version is ${VERSION}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ////////// Step 4 //////////
             stage('Build and tests') {
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 echo "Building application and Docker image"
-                                myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
-
+                                if ("${VERSION}") {
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                } else {
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                }
                                 echo "Running local docker tests"
 
                                 // Kill container in case there is a leftover
                                 sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
 
                                 echo "Starting ${SERVICE_NAME} container"
-                                sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
+                                if ("${VERSION}") {
+                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
+                                } else {
+                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
+                                }
 
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
@@ -160,9 +148,10 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 4 //////////
+            ////////// Step 5 //////////
             stage('Publish Docker and Helm') {
                 environment {
+                    // Pulled from Step 3
                     CURRENT_VERSION = "${VERSION}"
                 }
                 when {
@@ -183,7 +172,7 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 5 //////////
+            ////////// Step 6 //////////
             stage('Deploy to TEST') {
                 environment {
                     home = "${WORKSPACE}"
@@ -204,7 +193,7 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 6 //////////
+            ////////// Step 7 //////////
             stage('Update Version Manifest') {
                 when {
                     anyOf {
