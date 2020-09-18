@@ -9,15 +9,17 @@ def call(Map args = [:]) {
     Map mergedArgs = argsDefault + args
     context = this
 
-    static downloadFile(String filename, String bucket){
-        googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
-    }
+    //static downloadFile(String filename, String bucket){
+    //    googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
+    //}
 
     /* Grab the current version
     * Check if we want to bump MAJOR or MINOR, if not then we will
     * always bump PATCH version
     * Then grab the new version and return to pipeline */
-    status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
+    //status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
+    
+    status = googleStorageDownload bucketUri: "gs://createstudio_ci_cd/docker/build_manfiest.json", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
     def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
     def date = new Date()
     def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
