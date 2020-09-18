@@ -80,6 +80,7 @@ def call(body) {
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
+            GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-buckets')
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
@@ -109,9 +110,7 @@ def call(body) {
                             script {
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
-                                
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                     manifestDateCheck = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py")
                                     println(manifestDateCheck) 
                                     VERSION = getVersion()
