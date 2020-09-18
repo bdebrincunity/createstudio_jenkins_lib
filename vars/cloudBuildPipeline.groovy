@@ -106,8 +106,9 @@ def call(body) {
                                 //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
-                                    println(manifestDateCheckPre) 
-                                    VERSION = getVersion()
+                                    println(manifestDateCheckPre)
+                                    IncrementVersion()
+                                    //VERSION = getVersion()
                                     echo "Version is ${VERSION}"
                                     echo "Global ID set to ${ID}"
                                     def listName = PROJECT_TYPE.split(",")
