@@ -19,7 +19,7 @@ def call(Map args = [:]) {
     * Then grab the new version and return to pipeline */
     //status = downloadFile("${buildManifest}", 'createstudio_ci_cd')
     
-    status = googleStorageDownload bucketUri: "gs://createstudio_ci_cd/docker/build_manfiest.json", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
+    status = googleStorageDownload bucketUri: "gs://createstudio_ci_cd/docker/build_manifest.json", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
     def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
     def date = new Date()
     def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
