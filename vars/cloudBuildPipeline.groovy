@@ -109,7 +109,7 @@ def call(body) {
                             script {
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
-                                withCredentials([file(credentialsId: 'sa-gcp-jenkins', variable: 'GC_KEY')]) {
+                                withCredentials([string(credentialsId: 'sa-gcp-jenkins', variable: 'GC_KEY')]) {
                                     sh("echo ${GC_KEY} | tee key.json")
                                 }
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
