@@ -215,13 +215,16 @@ def call(body) {
                         container('docker') {
                             script {
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    sh("ls -la")
+                                    sh("ls -la docker/")
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre)
                                     println(manifestDateCheckPost)
                                     if ( manifestDateCheckPre == manifestDateCheckPost ) {
-                                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     } else {
                                         getVersion()
-                                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     }
                                 }
                             }
