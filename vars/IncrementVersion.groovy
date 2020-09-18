@@ -9,7 +9,7 @@ def call(Map args = [:]) {
     Map mergedArgs = argsDefault + args
     context = this
 
-    def downloadFile(String filename, String bucket){
+    static downloadFile(String filename, String bucket){
         googleStorageDownload bucketUri: "gs://${bucket}/${filename}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
     }
 
