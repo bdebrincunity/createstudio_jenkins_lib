@@ -80,7 +80,7 @@ def call(body) {
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
-            GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-buckets')
+            GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
             buildManifest = 'docker/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
