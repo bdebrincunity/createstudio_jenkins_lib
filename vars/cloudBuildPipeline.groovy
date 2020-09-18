@@ -127,7 +127,7 @@ def call(body) {
                                 // Kill container in case there is a leftover
                                 sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
                                 echo "Building application and Docker image"
-                                if (VERSION) {
+                                if ( VERSION != null ) {
                                     myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
