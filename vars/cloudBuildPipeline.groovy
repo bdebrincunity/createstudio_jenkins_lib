@@ -81,6 +81,7 @@ def call(body) {
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
+            gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-bucket'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
@@ -104,8 +105,10 @@ def call(body) {
                         container('docker') {
                             script {
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
-                                //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
+                                PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                                 docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheck = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py")
+                                    println(manifestDateCheck) 
                                     VERSION = getVersion()
                                     echo "Version is ${VERSION}"
                                     echo "Global ID set to ${ID}"
