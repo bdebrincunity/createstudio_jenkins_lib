@@ -19,17 +19,13 @@ def getVersion(){
     def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
     def date = new Date()
     def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
-    // Remove build number so we can semver. Will add back new build number after
-    //LATEST_VERSION = \"VERSION\".replaceFirst("..\$", "")
     if ( LATEST_VERSION == "" ) {
         echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0-build.${BUILD_NUMBER}" 
         sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} | sponge ${buildManifest}")
-        //sh ("mv ${buildManifest}2 ${buildManifest}")
         LATEST_VERSION = "0.1.0-build.${BUILD_NUMBER}"
         return LATEST_VERSION
     } else {
-        // Need to implement parameters here, this does nothing at the moment other than bumping patch
-        // Maybe we bump on certain PR merge
+        // Maybe we bump on certain PR merge?
         if (env.BUMP_MAJOR == true){
             version = sh(script: "semver bump major ${LATEST_VERSION}", returnStdout: true).trim()
         }
@@ -91,8 +87,9 @@ def call(body) {
         }
 
         parameters {
-    //        string (name: 'GIT_BRANCH',           defaultValue: 'main',  description: 'Git branch to build')
-            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
+            booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
         }
 
         agent any
@@ -140,14 +137,13 @@ def call(body) {
                    }
                 }
             }
-            ////////// Step 2 //////////
+            ////////// Step 3 //////////
             stage('Build and tests') {
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 echo "Building application and Docker image"
-                                //myapp = BuildDockerImage(registry: registry, returnStdout: true)
                                 myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
 
                                 echo "Running local docker tests"
@@ -164,23 +160,22 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 3 //////////
+            ////////// Step 4 //////////
             stage('Publish Docker and Helm') {
                 environment {
                     CURRENT_VERSION = "${VERSION}"
                 }
-                /*when {
+                when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
                     }
-                }*/
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                             script {
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm", extraParams: "--version ${CURRENT_VERSION} --app-version ${CURRENT_VERSION}")
                             echo "Pushing helm chart"
-                            sh("ls -la docker/")
                             UploadHelm(chartDir: "./helm")
                             echo "Pushing Docker chart"
                             DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
@@ -188,7 +183,7 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 4 //////////
+            ////////// Step 5 //////////
             stage('Deploy to TEST') {
                 environment {
                     home = "${WORKSPACE}"
@@ -209,20 +204,25 @@ def call(body) {
                     }
                 }
             }
+            ////////// Step 6 //////////
             stage('Update Version Manifest') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    sh("ls -la")
-                                    sh("ls -la docker/")
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
                                     println(manifestDateCheckPost)
                                     if ( manifestDateCheckPre == manifestDateCheckPost ) {
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     } else {
+                                        echo "BuildManifest has Changed since last process! Re-running version incrementing"
                                         getVersion()
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     }
@@ -241,15 +241,6 @@ def call(body) {
             //}
             success {
                 echo 'I succeeded!'
-                script {
-                    if ( "${BRANCH_NAME}" == 'develop' ) {
-                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                    } else if ( "${BRANCH_NAME}" == 'main' ) {
-                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                    } else if ( "${BRANCH_NAME}" == 'release' ) {
-                        uploadFile("${PROJECT_DIR}/${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                    }
-                }
             }
             unstable {
                 echo 'I am unstable :/'
