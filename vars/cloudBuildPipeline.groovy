@@ -124,23 +124,19 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                echo "Building application and Docker image"
-                                if ("${VERSION}") {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
-                                } else {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID} . || errorExit \"Building ${SERVICE_NAME} failed\"")
-                                }
-                                echo "Running local docker tests"
-
                                 // Kill container in case there is a leftover
                                 sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
-
-                                echo "Starting ${SERVICE_NAME} container"
-                                if ("${VERSION}") {
+                                echo "Building application and Docker image"
+                                if (VERSION) {
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    echo "Starting ${SERVICE_NAME} container"
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
                                 } else {
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    echo "Starting ${SERVICE_NAME} container"
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
                                 }
+                                echo "Running local docker tests"
 
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }

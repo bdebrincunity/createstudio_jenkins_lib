@@ -46,8 +46,10 @@ def call(body) {
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
+            GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
             buildManifest = 'docker/build_manifest.json'
-            gcpBucketCredential = 'sa-createstudio-bucket'
+            gcpBucketCICD = 'createstudio_ci_cd'
+            gcpBucketCredential = 'sa-createstudio-buckets'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
@@ -55,8 +57,9 @@ def call(body) {
         }
 
         parameters {
-    //        string (name: 'GIT_BRANCH',           defaultValue: 'main',  description: 'Git branch to build')
-            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
+            booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
         }
 
         agent any
@@ -64,21 +67,13 @@ def call(body) {
         // Pipeline stages
         stages {
             ////////// Step 1 //////////
-           stage('Update SCM Variables') {
+            stage('Update SCM Variables') {
                 steps {
-                    dir("${PROJECT_DIR}") {
-                        container('docker') {
-                            script {
-                                PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
-                                docker.image("gcr.io/unity-labs-createstudio-test/base_tools").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    VERSION = getVersion()
-                                    echo "Global ID set to ${ID}"
-                                    def listName = PROJECT_TYPE.split(",")
-                                    listName.each { item ->
-                                        echo "${item}"
-                                    }
-                                }
-                            }
+                    script {
+                        echo "Global ID set to ${ID}"
+                        def listName = PROJECT_TYPE.split(",")
+                        listName.each { item ->
+                            echo "${item}"
                         }
                     }
                 }
@@ -150,6 +145,30 @@ def call(body) {
                     //}
                 }
             }*/
+            ////////// Step 3 //////////
+            stage("Get Version") {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
+                                //PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre)
+                                    VERSION = IncrementVersion()
+                                    echo "Version is ${VERSION}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             stage('Create Mac Build') {
                 environment { type = "mac" }
                 when {
@@ -251,7 +270,10 @@ def call(body) {
                                    docker stop ${ID}
                                    docker cp ${project}/. ${ID}:/${PROJECT_TYPE}
                                    """
-                                myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${SERVICE_NAME}:${ID}").trim()
+                                if ("${VERSION}") {
+                                    myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}:${VERSION}").trim()
+                                }
+                                myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}:${VERSION}").trim()
                                 // Save this below for local testing in the future
                                 //echo "Starting ${ID} container"
                                 //sh "docker run --detach --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
@@ -277,7 +299,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
-                            echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}"
+                            echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}:${VERSION}"
                             DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm")
