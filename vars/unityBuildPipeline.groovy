@@ -270,10 +270,11 @@ def call(body) {
                                    docker stop ${ID}
                                    docker cp ${project}/. ${ID}:/${PROJECT_TYPE}
                                    """
-                                if ("${VERSION}") {
+                                if (binding.hasVariable('VERSION')) {
                                     myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}:${VERSION}").trim()
+                                } else {
+                                    myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}").trim()
                                 }
-                                myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}:${VERSION}").trim()
                                 // Save this below for local testing in the future
                                 //echo "Starting ${ID} container"
                                 //sh "docker run --detach --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
@@ -330,6 +331,32 @@ def call(body) {
                             // Remove release if exists
                             scriptToRun = "[ -z \"\$(helm ls --kubeconfig ${KUBE_CNF} | grep ${ID} 2>/dev/null)\" ] || helm delete ${ID} --kubeconfig ${KUBE_CNF}"
                             RunInDocker(dockerImage: "kiwigrid/gcloud-kubectl-helm", script: scriptToRun, name: "Remove Helm Release")
+                        }
+                    }
+                }
+            }
+            stage('Update Version Manifest') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    // Check if manifest has been updated, if so, re-run incrementing version
+                                    if ( manifestDateCheckPre == manifestDateCheckPost ) {
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    } else {
+                                        echo "BuildManifest has Changed since last process! Re-running version incrementing"
+                                        getVersion()
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
