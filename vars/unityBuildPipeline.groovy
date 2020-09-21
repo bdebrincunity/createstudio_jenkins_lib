@@ -180,8 +180,6 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                def CURRENT_VERSION = "${VERSION}"
-                                echo "Create Build with Version: ${CURRENT_VERSION}"
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -189,6 +187,8 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
+                                            def CURRENT_VERSION = "${VERSION}"
+                                            echo "Create Build with Version: ${CURRENT_VERSION}"
                                             sh("files/build.sh ${type}")
                                         }
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
