@@ -161,7 +161,7 @@ def call(body) {
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
-                                    VERSION = IncrementVersion()
+                                    def VERSION = IncrementVersion()
                                     echo "Version is ${VERSION}"
                                 }
                             }
@@ -170,7 +170,11 @@ def call(body) {
                 }
             }
             stage('Create Mac Build') {
-                environment { type = "mac" }
+                environment {
+                    // Pulled from Step 3
+                    CURRENT_VERSION = "${VERSION}"
+                    type = "mac"
+                }
                 when {
                     expression { "${PROJECT_TYPE}".contains('mac') }
                 }
@@ -178,7 +182,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                echo "Create Build with Version: ${VERSION}"
+                                echo "Create Build with Version: ${CURRENT_VERSION}"
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
