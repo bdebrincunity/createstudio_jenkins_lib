@@ -96,11 +96,11 @@ def call(body) {
             }
             ////////// Step 3 //////////
             stage("Get Version") {
-                /*when {
+                when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
                     }
-                }*/
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
@@ -129,7 +129,6 @@ def call(body) {
                                 echo "Building application and Docker image"
                                 // Check if VERSION var is set from Step 3
                                 if (binding.hasVariable('VERSION')) {
-                                    echo "Are we in the ${VERSION} block?"
                                     myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
