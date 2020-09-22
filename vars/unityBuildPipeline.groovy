@@ -414,16 +414,16 @@ def call(body) {
             success {
                 echo 'I succeeded!'
             }
-            //unstable {
-            //    echo 'I am unstable :/'
-            //}
+            unstable {
+                echo 'I am unstable :/'
+            }
             failure {
                 echo 'I failed :('
                 archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
             }
-            //changed {
-            //    echo 'Things were different before...'
-            //}
+            changed {
+                echo 'Things were different before...'
+            }
         }
     }
 }
