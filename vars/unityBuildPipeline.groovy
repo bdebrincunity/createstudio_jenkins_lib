@@ -129,6 +129,7 @@ def call(body) {
                                                                 }
                                                             } else {
                                                                 sh("ls -la")
+                                                                sh("ls -la Viewer/")
                                                                 sh("Viewer/files/build.sh ${item}")
                                                             }
                                                         }
