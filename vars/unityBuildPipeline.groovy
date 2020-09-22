@@ -106,7 +106,7 @@ def call(body) {
                                 projectList.each { item ->
                                     builds["${item}"] = {
                                         stage("Build ${item}") {
-                                            ws("${item}") {
+                                            ws("${PROJECT_DIR}/${item}") {
                                             container('docker') {
                                                 echo "Build ${item} - ${ID}"
                                                 rnd = Math.abs(new Random().nextInt() % 3000) + 1
@@ -121,7 +121,7 @@ def call(body) {
                                                         sshagent (credentials: ['ssh_createstudio']) {
                                                             sh("pwd")
                                                             sh("ls -la")
-                                                            sh("ls -la ../workspace")
+                                                            sh("ls -la ../")
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
                                                                     sh("files/build.sh ${item}")
