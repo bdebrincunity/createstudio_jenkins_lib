@@ -265,15 +265,9 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            if (binding.hasVariable('VERSION')) {
-                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
-                                                    sh("files/build.sh ${type}")
-                                                }
-                                            } else {
-                                                sh("files/build.sh ${type}")
-                                            }
+                                            sh("files/build.sh ${type}")
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${type} | sed -e 's/\\.\\///g'").trim()
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
