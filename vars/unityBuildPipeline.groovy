@@ -265,7 +265,13 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            sh("files/build.sh ${type}")
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
                                         }
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
