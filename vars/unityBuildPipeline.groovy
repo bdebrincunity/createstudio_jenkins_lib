@@ -122,6 +122,7 @@ def call(body) {
                                                             sh("pwd")
                                                             sh("ls -la")
                                                             sh("ls -la ../")
+                                                            sh("ls -la ../../")
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
                                                                     sh("files/build.sh ${item}")
