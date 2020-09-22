@@ -123,6 +123,8 @@ def call(body) {
                                                             sh("ls -la")
                                                             sh("ls -la ../")
                                                             sh("ls -la ../../")
+                                                            sh("ln -nfs ../../Viewer")
+                                                            sh("cd Viewer")
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
                                                                     sh("files/build.sh ${item}")
