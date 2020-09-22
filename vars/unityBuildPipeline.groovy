@@ -120,8 +120,9 @@ def call(body) {
                                                     docker.image("gableroux/unity3d:2019.4.3f1-${item}").inside() {
                                                         sshagent (credentials: ['ssh_createstudio']) {
                                                             sh("pwd")
-                                                            sh("ln -nfs ../../Viewer")
+                                                            sh("cp -R ../../Viewer .")
                                                             sh("cd ./Viewer")
+                                                            sh("ls -la")
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
                                                                     sh("ls -la")
