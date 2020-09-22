@@ -121,7 +121,7 @@ def call(body) {
                                                         sshagent (credentials: ['ssh_createstudio']) {
                                                             sh("pwd")
                                                             sh("ln -nfs ../../Viewer")
-                                                            sh("cd Viewer/")
+                                                            sh("cd ./Viewer")
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
                                                                     sh("ls -la")
