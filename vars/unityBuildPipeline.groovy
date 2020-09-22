@@ -147,11 +147,11 @@ def call(body) {
             }*/
             ////////// Step 3 //////////
             stage("Get Version") {
-                /*when {
+                when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
                     }
-                }*/
+                }
                 steps {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
