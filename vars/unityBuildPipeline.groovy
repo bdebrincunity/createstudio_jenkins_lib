@@ -129,7 +129,7 @@ def call(body) {
                                                                 }
                                                             } else {
                                                                 sh("ls -la")
-                                                                sh("files/build.sh ${item}")
+                                                                sh("Viewer/files/build.sh ${item}")
                                                             }
                                                         }
                                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${item} | sed -e 's/\\.\\///g'").trim()
