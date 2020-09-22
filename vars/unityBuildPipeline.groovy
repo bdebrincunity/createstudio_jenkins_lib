@@ -111,7 +111,7 @@ def call(body) {
                                                 echo "Build ${item} - ${ID}"
                                                 rnd = Math.abs(new Random().nextInt() % 3000) + 1
                                                 //sleep(rnd)
-                                                withCredentials([
+                                                w${SERVICE_NAME}ithCredentials([
                                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
@@ -226,8 +226,13 @@ def call(body) {
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                        sshagent (credentials: ['ssh_createstudio']) {
-                                            sh("files/build.sh ${type}")
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
                                         }
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
