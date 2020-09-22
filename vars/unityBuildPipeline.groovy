@@ -29,7 +29,7 @@ def call(body) {
 
         options {
             // Build auto timeout
-            timeout(time: 60, unit: 'MINUTES')
+            timeout(time: 90, unit: 'MINUTES')
             ansiColor('xterm')
         }
 
@@ -187,9 +187,11 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            //def CURRENT_VERSION = "${VERSION}"
-                                            //echo "Create Build with Version: ${CURRENT_VERSION}"
-                                            withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
                                                 sh("files/build.sh ${type}")
                                             }
                                         }
