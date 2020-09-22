@@ -121,13 +121,13 @@ def call(body) {
                                                         sshagent (credentials: ['ssh_createstudio']) {
                                                             if (binding.hasVariable('VERSION')) {
                                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
-                                                                    sh("files/build.sh ${type}")
+                                                                    sh("files/build.sh ${item}")
                                                                 }
                                                             } else {
-                                                                sh("files/build.sh ${type}")
+                                                                sh("files/build.sh ${item}")
                                                             }
                                                         }
-                                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${item} | sed -e 's/\\.\\///g'").trim()
+                                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${item} | sed -e 's/\\.\\///g'").trim()
                                                         sh("ls -la")
                                                         echo ("Built ${project} !")
                                                         if ("${item}" == 'mac') {
