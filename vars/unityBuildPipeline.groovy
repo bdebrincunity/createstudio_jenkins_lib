@@ -96,33 +96,36 @@ def call(body) {
                 }
             }
             // Parallel builds work, but share workspace which Unity complains about, need to figure out how to separate into different workspaces
-           /*
             stage('Parallel Unity Build') {
                 steps {
-                    //dir("${PROJECT_DIR}") {
-                        //container('docker') {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
                             script {
                                 def builds = [:]
                                 def projectList = PROJECT_TYPE.split(",")
                                 projectList.each { item ->
                                     builds["${item}"] = {
                                         stage("Build ${item}") {
+                                            ws("${item}") {
                                             container('docker') {
                                                 echo "Build ${item} - ${ID}"
                                                 rnd = Math.abs(new Random().nextInt() % 3000) + 1
                                                 //sleep(rnd)
-                                                w${SERVICE_NAME}ithCredentials([
+                                                withCredentials([
                                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
                                                 ]){
                                                     //docker.image("gableroux/unity3d:2019.4.3f1-${item}").inside("-w /${item} -v \${PWD}:/${item} -it") {
                                                     docker.image("gableroux/unity3d:2019.4.3f1-${item}").inside() {
-                                                        sh("pwd")
-                                                        sh("ls -la")
-                                                        sh("ls -la ../")
                                                         sshagent (credentials: ['ssh_createstudio']) {
-                                                            sh("files/build.sh ${item}")
+                                                            if (binding.hasVariable('VERSION')) {
+                                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                                    sh("files/build.sh ${type}")
+                                                                }
+                                                            } else {
+                                                                sh("files/build.sh ${type}")
+                                                            }
                                                         }
                                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${item} | sed -e 's/\\.\\///g'").trim()
                                                         sh("ls -la")
@@ -135,16 +138,17 @@ def call(body) {
                                                     }
                                                 }
                                             }
+                                            }
                                         }
                                     }
                                 }
                                 // Execute our parallel builds based on PROJECT_TYPES
                                 parallel builds
                             }
-                        //}
-                    //}
+                        }
+                    }
                 }
-            }*/
+            }
             ////////// Step 3 //////////
             stage("Get Version") {
                 when {
