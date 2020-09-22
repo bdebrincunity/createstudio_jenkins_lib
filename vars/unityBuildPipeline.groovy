@@ -128,6 +128,7 @@ def call(body) {
                                                                     sh("files/build.sh ${item}")
                                                                 }
                                                             } else {
+                                                                sh("ls -la")
                                                                 sh("files/build.sh ${item}")
                                                             }
                                                         }
