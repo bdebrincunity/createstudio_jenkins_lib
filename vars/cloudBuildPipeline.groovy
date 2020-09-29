@@ -219,7 +219,9 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                             script {
                             echo "Packaging helm chart"
-                            PackageHelmChart(chartDir: "./helm", extraParams: "--version ${CURRENT_VERSION} --app-version ${CURRENT_VERSION}")
+                            PackageHelmChart(chartDir: "./helm")
+                            // Bug in UploadHelm, doesn't actually take extra params properly
+                            //, extraParams: "--version ${CURRENT_VERSION} --app-version ${CURRENT_VERSION}")
                             echo "Pushing helm chart"
                             UploadHelm(chartDir: "./helm")
                             echo "Pushing Docker chart"
