@@ -100,6 +100,9 @@ def call(body) {
             }
             ////////// Step 3 //////////
             stage("Get Version") {
+                environment {
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
+                }
                 when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
@@ -246,6 +249,9 @@ def call(body) {
             }
             ////////// Step 7 //////////
             stage('Update Version Manifest') {
+                environment {
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
+                }
                 when {
                     anyOf {
                         expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
