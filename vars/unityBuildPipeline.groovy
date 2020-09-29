@@ -317,6 +317,7 @@ def call(body) {
                 environment {
                     home = "${WORKSPACE}" 
                     env = 'test'
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
                     expression { "${PROJECT_TYPE}".contains('webgl')  }

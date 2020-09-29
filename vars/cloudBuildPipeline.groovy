@@ -208,6 +208,7 @@ def call(body) {
                 environment {
                     // Pulled from Step 3
                     CURRENT_VERSION = "${VERSION}"
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
                     anyOf {
