@@ -232,7 +232,6 @@ def call(body) {
             stage('Deploy to TEST') {
                 environment {
                     home = "${WORKSPACE}"
-                    env = 'test'
                 }
                 when {
                     anyOf {
@@ -242,6 +241,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
+                            env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
