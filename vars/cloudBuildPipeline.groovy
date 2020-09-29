@@ -58,6 +58,7 @@ def call(body) {
             booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'If build and tests are good, proceed and deploy to production without manual approval')
             booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
             booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
+            booleanParam (name: 'BUMP_PATCH', defaultValue: false, description: 'Bump Minor Semver')
         }
 
         agent any
