@@ -22,7 +22,10 @@ def call(Map args = [:]) {
     status = googleStorageDownload bucketUri: "gs://${gcpBucketCICD}/${buildManifest}", credentialsId: 'sa-createstudio-buckets', localDirectory: "."
     def dateFormat = new SimpleDateFormat("yyyyMMddHHmm")
     def date = new Date()
-    def LATEST_VERSION = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
+
+    String result = sh(script: "jq '.docker.${SERVICE_NAME}[].version' ${buildManifest}| tail -1", returnStdout: true).trim()
+    // 1.0.0-build.43 will be 1.0.0
+    CURRENT_VERSION = result.split("-")[0]
     if ( LATEST_VERSION == "" ) {
         echo "${SERVICE_NAME} does not exist in our build manifest. Will begin with version 0.1.0-build.${BUILD_NUMBER}"
         sh ("jq '.docker += { \"${SERVICE_NAME}\": [{\"version\": \"0.1.0-build.${BUILD_NUMBER}\", \"tags\":{\"UUID\": \"${BUILD_UUID}\", \"last_build_time\": \"${date}\"}}]}' ${buildManifest} | sponge ${buildManifest}")
