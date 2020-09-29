@@ -136,11 +136,11 @@ def call(body) {
                                 echo "Building application and Docker image"
                                 // Check if VERSION var is set from Step 3
                                 if (binding.hasVariable('VERSION')) {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID}:${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME}:${ID}-${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"
-                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}:${VERSION}"
+                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${ID}-${VERSION}"
                                 } else {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${ID} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
                                 }
