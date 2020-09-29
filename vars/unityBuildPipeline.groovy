@@ -29,7 +29,7 @@ def call(body) {
 
         options {
             // Build auto timeout
-            timeout(time: 60, unit: 'MINUTES')
+            timeout(time: 180, unit: 'MINUTES')
             ansiColor('xterm')
         }
 
@@ -45,9 +45,10 @@ def call(body) {
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
-            BuildID = UUID.randomUUID().toString()
+            BUILD_UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
-            gcpBucketCredential = 'sa-createstudio-bucket'
+            gcpBucketCICD = 'createstudio_ci_cd'
+            gcpBucketCredential = 'sa-createstudio-buckets'
             registryCredential = 'sa-createstudio-jenkins'
             registry = 'gcr.io/unity-labs-createstudio-test'
             namespace = 'labs-createstudio'
@@ -55,18 +56,23 @@ def call(body) {
         }
 
         parameters {
-    //        string (name: 'GIT_BRANCH',           defaultValue: 'main',  description: 'Git branch to build')
-            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false,     description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'If build and tests are good, proceed and deploy to production without manual approval')
+            booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
+            booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
         }
 
         agent any
 
         // Pipeline stages
         stages {
-            ////////// Step 1 //////////
-            stage('SCM Variables') {
+            stage('Update SCM Variables') {
+                environment {
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
+                }
                 steps {
                     script {
+                        echo "Pull custom docker images"
+                        PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                         echo "Global ID set to ${ID}"
                         def listName = PROJECT_TYPE.split(",")
                         listName.each { item ->
@@ -108,7 +114,7 @@ def call(body) {
                                                 echo "Build ${item} - ${ID}"
                                                 rnd = Math.abs(new Random().nextInt() % 3000) + 1
                                                 //sleep(rnd)
-                                                withCredentials([
+                                                w${SERVICE_NAME}ithCredentials([
                                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
                                                     [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
@@ -142,8 +148,33 @@ def call(body) {
                     //}
                 }
             }*/
+            ////////// Step 3 //////////
+            stage("Get Version") {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre)
+                                    VERSION = IncrementVersion()
+                                    echo "Version is ${VERSION}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             stage('Create Mac Build') {
-                environment { type = "mac" }
+                environment {
+                    type = "mac"
+                }
                 when {
                     expression { "${PROJECT_TYPE}".contains('mac') }
                 }
@@ -158,7 +189,14 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            sh("files/build.sh ${type}")
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    echo "Did we receive ${CURRENT_VERSION} ?"
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
                                         }
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
@@ -191,7 +229,13 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            sh("files/build.sh ${type}")
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
                                         }
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
@@ -223,9 +267,15 @@ def call(body) {
                                 ]){
                                     docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                         sshagent (credentials: ['ssh_createstudio']) {
-                                            sh("files/build.sh ${type}")
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${type} | sed -e 's/\\.\\///g'").trim()
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
                                         archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
@@ -236,14 +286,18 @@ def call(body) {
                                 sh("docker rmi -f ${DOCKER_REG}/${ID} || true ")
                                 sh("docker rmi -f ${ID} || true ")
                                 sh """
-                                   docker create --name ${ID} -w /${PROJECT_TYPE} nginx:stable
+                                   docker create --name ${ID} -w /${type} nginx:stable
                                    docker cp files/webgl.conf ${ID}:/etc/nginx/conf.d/
                                    docker start ${ID}
                                    docker exec ${ID} rm -f /etc/nginx/conf.d/default.conf
                                    docker stop ${ID}
-                                   docker cp ${project}/. ${ID}:/${PROJECT_TYPE}
+                                   docker cp ${project}/. ${ID}:/${type}
                                    """
-                                myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${SERVICE_NAME}:${ID}").trim()
+                                if (binding.hasVariable('VERSION')) {
+                                    myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}:${VERSION}").trim()
+                                } else {
+                                    myapp = sh(returnStdout: true, script: "docker commit ${ID} ${DOCKER_REG}/${ID}").trim()
+                                }
                                 // Save this below for local testing in the future
                                 //echo "Starting ${ID} container"
                                 //sh "docker run --detach --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${ID}"
@@ -269,7 +323,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
-                            echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}"
+                            echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}:${VERSION}"
                             DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm")
@@ -281,8 +335,8 @@ def call(body) {
                     }
                 }
             }
-            /// Cleanup an deployments outside of the 3 main branches
-            stage('Cleanup') {
+            /// Cleanup an deployments outside of the 3 main branches --> not being deployed right now
+            /*stage('Cleanup') {
                 environment {
                     env = 'test'
                 }
@@ -298,8 +352,35 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         script {
                             // Remove release if exists
+                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             scriptToRun = "[ -z \"\$(helm ls --kubeconfig ${KUBE_CNF} | grep ${ID} 2>/dev/null)\" ] || helm delete ${ID} --kubeconfig ${KUBE_CNF}"
                             RunInDocker(dockerImage: "kiwigrid/gcloud-kubectl-helm", script: scriptToRun, name: "Remove Helm Release")
+                        }
+                    }
+                }
+            }*/
+            stage('Update Version Manifest') {
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    // Check if manifest has been updated, if so, re-run incrementing version
+                                    if ( manifestDateCheckPre == manifestDateCheckPost ) {
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    } else {
+                                        echo "BuildManifest has Changed since last process! Re-running version incrementing"
+                                        IncrementVersion()
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -331,20 +412,20 @@ def call(body) {
         post {
             always {
                 echo 'One way or another, I have finished'
+                archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
             }
             success {
                 echo 'I succeeded!'
             }
-            //unstable {
-            //    echo 'I am unstable :/'
-            //}
+            unstable {
+                echo 'I am unstable :/'
+            }
             failure {
                 echo 'I failed :('
-                archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
             }
-            //changed {
-            //    echo 'Things were different before...'
-            //}
+            changed {
+                echo 'Things were different before...'
+            }
         }
     }
 }
