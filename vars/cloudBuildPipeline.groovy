@@ -42,6 +42,7 @@ def call(body) {
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
+            BRANCH = BRANCH_NAME.toLowerCase()
             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
@@ -136,9 +137,9 @@ def call(body) {
                                 echo "Building application and Docker image"
                                 // Check if VERSION var is set from Step 3
                                 if (binding.hasVariable('VERSION')) {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME}:${ID}-${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"
-                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${ID}-${VERSION}"
+                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}"
                                 } else {
                                     myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME} . || errorExit \"Building ${SERVICE_NAME} failed\"")
                                     echo "Starting ${SERVICE_NAME} container"

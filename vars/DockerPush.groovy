@@ -14,7 +14,7 @@ def call(Map args = [:]) {
 
     withEnv([
             "version=${sh([returnStdout: true, script: 'echo $CURRENT_VERSION']).trim()}",
-            "id=${sh([returnStdout: true, script: 'echo $ID']).trim()}",
+            "branch=${sh([returnStdout: true, script: 'echo $BRANCH']).trim()}",
             "service_name=${sh([returnStdout: true, script: 'echo $SERVICE_NAME']).trim()}",
             "registry=${sh([returnStdout: true, script: 'echo $DOCKER_REG']).trim()}",
             "revision=${sh([returnStdout: true, script: 'git log --format=\"%H\" -n 1']).trim()}",
@@ -23,7 +23,7 @@ def call(Map args = [:]) {
             "identifier=${sh([returnStdout: true, script: 'uuidgen']).trim()}",
     ]) {
         withEnv([
-                "image=${registry}/${service_name}:${id}-${version}",
+                "image=${registry}/${service_name}:${branch}-${version}",
                 "DOCKER_PARAMS= --log-driver json-file --net=container:network-${identifier} -e JENKINS_URL -e GIT_BRANCH=${env.BRANCH_NAME} -e GIT_COMMIT=${revision} -e CHANGE_ID -e BRANCH_NAME -e BUILD_NUMBER -e BUILD_URL ",
         ]) {
            DockerUtilities.pushImage(context)
