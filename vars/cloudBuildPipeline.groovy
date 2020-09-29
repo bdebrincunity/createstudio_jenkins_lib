@@ -43,7 +43,6 @@ def call(body) {
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
             BRANCH = BRANCH_NAME.toLowerCase()
-            KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
             buildManifest = 'docker/build_manifest.json'
