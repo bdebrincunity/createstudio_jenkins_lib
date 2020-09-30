@@ -267,7 +267,7 @@ def call(body) {
                         container('docker') {
                             script {
                                 echo "can we get here?"
-                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                /*docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     def manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     //println(manifestDateCheckPre)
                                     //println(manifestDateCheckPost)
@@ -278,7 +278,7 @@ def call(body) {
                                         getVersion()
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     }
-                                }
+                                }*/
                             }
                         }
                     }
