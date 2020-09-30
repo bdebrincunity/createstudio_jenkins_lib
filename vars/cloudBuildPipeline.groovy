@@ -116,9 +116,9 @@ def call(body) {
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
-                                    println(manifestDateCheckPre)
+                                    //println(manifestDateCheckPre)
                                     VERSION = IncrementVersion()
-                                    echo "Version is ${VERSION}"
+                                    //echo "Version is ${VERSION}"
                                 }
                             }
                         }
@@ -268,8 +268,8 @@ def call(body) {
                             script {
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
-                                    println(manifestDateCheckPre)
-                                    println(manifestDateCheckPost)
+                                    //println(manifestDateCheckPre)
+                                    //println(manifestDateCheckPost)
                                     if ( manifestDateCheckPre == manifestDateCheckPost ) {
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     } else {
