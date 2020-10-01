@@ -43,9 +43,10 @@ def call(body) {
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
             NAME_ID = "${SERVICE_NAME}-${BRANCH_NAME}"
+            BRANCH = BRANCH_NAME.toLowerCase()
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
-            buildManifest = 'docker/build_manifest.json'
+            buildManifest = 'artifacts/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
             registryCredential = 'sa-createstudio-jenkins'

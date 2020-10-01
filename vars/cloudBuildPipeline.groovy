@@ -45,7 +45,7 @@ def call(body) {
             BRANCH = BRANCH_NAME.toLowerCase()
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
-            buildManifest = 'docker/build_manifest.json'
+            buildManifest = 'artifacts/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
             registryCredential = 'sa-createstudio-jenkins'
