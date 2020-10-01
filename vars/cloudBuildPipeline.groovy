@@ -248,11 +248,11 @@ def call(body) {
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
                                     println(manifestDateCheckPost)
-                                    if ( "${env.manifestDateCheckPre}" == "${env.manifestDateCheckPost}" ) {
+                                    if ( manifestDateCheckPre == manifestDateCheckPost ) {
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     } else {
                                         echo "BuildManifest has Changed since last process! Re-running version incrementing"
-                                        getVersion()
+                                        IncrementVersion()
                                         uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
                                     }
                                 }
