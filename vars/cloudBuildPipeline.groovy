@@ -230,6 +230,37 @@ def call(body) {
                     }
                 }
             }
+            ////////// Step 7 //////////
+            stage('Update Version Manifest') {
+                environment {
+                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
+                }
+                when {
+                    anyOf {
+                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
+                                    println(manifestDateCheckPre)
+                                    println(manifestDateCheckPost)
+                                    if ( "${env.manifestDateCheckPre}" == "${env.manifestDateCheckPost}" ) {
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    } else {
+                                        echo "BuildManifest has Changed since last process! Re-running version incrementing"
+                                        getVersion()
+                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             ////////// Step 6 //////////
             stage('Deploy to TEST') {
                 environment {
@@ -252,39 +283,6 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 7 //////////
-            stage('Update Version Manifest') {
-                environment {
-                    GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
-                }
-                when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
-                    }
-                }
-                steps {
-                    dir("${PROJECT_DIR}") {
-                        container('docker') {
-                            script {
-                                echo "can we get here?"
-                                /*docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
-                                    def manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
-                                    //println(manifestDateCheckPre)
-                                    //println(manifestDateCheckPost)
-                                    if ( "${env.manifestDateCheckPre}" == "${env.manifestDateCheckPost}" ) {
-                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                                    } else {
-                                        echo "BuildManifest has Changed since last process! Re-running version incrementing"
-                                        getVersion()
-                                        uploadFile("${buildManifest}", 'createstudio_ci_cd', "${PROJECT_DIR}")
-                                    }
-                                }*/
-                            }
-                        }
-                    }
-                }
-            }
-
         }
         post {
             always {
