@@ -29,7 +29,7 @@ def call(body) {
 
         options {
             // Build auto timeout
-            timeout(time: 300, unit: 'MINUTES')
+            timeout(time: 600, unit: 'MINUTES')
             ansiColor('xterm')
         }
 
