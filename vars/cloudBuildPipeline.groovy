@@ -281,7 +281,18 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
-                            ApplyHelmChart(releaseName: "${ID}", chartName: "${SERVICE_NAME}", chartValuesFile: "helm/values.yaml", extraParams: "--kubeconfig ${KUBE_CNF} --namespace ${namespace} --set image.repository=${DOCKER_REG}/${SERVICE_NAME} --set image.tag=${BRANCH}-${VERSION} --set ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT} --set ConnectionStrings__default=${ConnectionStrings__default} --set Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}")
+                            ApplyHelmChart(
+                                releaseName: "${ID}",
+                                chartName: "${SERVICE_NAME}",
+                                chartValuesFile: "helm/values.yaml",
+                                extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
+                                    --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
+                                    --set image.tag=${BRANCH}-${VERSION} \
+                                    --set ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT} \
+                                    --set ConnectionStrings__default=${ConnectionStrings__default} \
+                                    --set Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}
+                                """
+                           )
                         }
                     }
                 }
