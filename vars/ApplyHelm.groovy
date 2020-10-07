@@ -18,9 +18,10 @@ def call(Map args = [:]) {
     withEnv(["home=${WORKSPACE}"]) {
         script = """
             CHART_VERSION=`helm show chart ${mergedArgs.chartDir} | grep version | awk '{print \$2}'`
-            ${mergedArgs.command} ${mergedArgs.extraParams} ${mergedArgs.release} --namespace ${mergedArgs.namespace} -f ${mergedArgs.chartValuesFile} ${mergedArgs.releaseName} ${mergedArgs.chartName}-\$CHART_VERSION.tgz \
+            ${mergedArgs.command} ${mergedArgs.release} --namespace ${mergedArgs.namespace} -f ${mergedArgs.chartValuesFile} ${mergedArgs.releaseName} ${mergedArgs.extraParams} ${mergedArgs.chartName}-\$CHART_VERSION.tgz \
                 --kubeconfig ${KUBE_CNF}
         """
+        echo "The full command will be ${script}"
         DockerUtils.runInDocker(context, mergedArgs.dockerImage, script)
     }
 }

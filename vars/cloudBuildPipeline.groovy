@@ -168,7 +168,6 @@ def call(body) {
                                 sh("apk add docker-compose")
                                 sh("docker-compose -f docker/docker-compose.test.yml up -d db")
                                 docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1').inside("-w /workspace -v ${PWD}:/workspace -v /var/run/docker.sock:/var/run/docker.sock --network container:Psql -u 1000 -it") {
-                                    //runTests = sh(returnStdout: true, script: "dotnet test --logger \"trx;LogFileName=results.trx\"")
                                     sh("dotnet test --logger \"trx;LogFileName=results.trx\"")
                                 } 
                                 // Sidecar containers should work, but for some reason it's not. Will leave this here for future work.
@@ -198,7 +197,7 @@ def call(body) {
                             thresholds: [failed(unstableThreshold: '2')],
                             tools: [MSTest(deleteOutputFiles: true, failIfNotNew: true, pattern: '**/*.trx', skipNoTestFiles: false, stopProcessingIfError: true)]
                         )
-                        //step([$class: 'MSTestPublisher', testResultsFile:"**/*.trx", failOnError: true, keepLongStdio: true])
+                        step([$class: 'MSTestPublisher', testResultsFile:"**/*.trx", failOnError: true, keepLongStdio: true])
                         echo 'Publishing Test Results!'
                     }
                 }
@@ -266,7 +265,7 @@ def call(body) {
                 environment {
                     home = "${WORKSPACE}"
                     ConnectionStrings__default = "Host=localhost;Database=createdataservice_test;Username=cs;Password=@Mn%50dvKngB@sEu"
-                    ASPNETCORE_ENVIRONMENT = "Testing"
+                    ASPNETCORE_ENVIRONMENT = "Integration"
                     Cloud__GCP__Storage__BucketName = "test-bucket"
                 }
                 when {
@@ -281,18 +280,38 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
-                            ApplyHelmChart(
-                                releaseName: "${ID}",
-                                chartName: "${SERVICE_NAME}",
-                                chartValuesFile: "helm/values.yaml",
-                                extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
-                                    --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
-                                    --set image.tag=${BRANCH}-${VERSION} \
-                                    --set ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT} \
-                                    --set ConnectionStrings__default=${ConnectionStrings__default} \
-                                    --set Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}
-                                """
-                           )
+                            withCredentials([string(credentialsId: 'sa-gcp-buckets', variable: "GC_KEY")]) {
+                                JSON_KEY = sh(returnStdout: true, script:"echo ${GC_KEY} | base64 -w 0").trim()
+                            }
+                            println("The KEY: ${JSON_KEY}")
+                            if (binding.hasVariable('VERSION')) {
+                                ApplyHelmChart(
+                                    releaseName: "${ID}",
+                                    chartName: "${SERVICE_NAME}",
+                                    chartValuesFile: "helm/values.yaml",
+                                    extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
+                                        --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
+                                        --set image.tag=${BRANCH}-${VERSION} \
+                                        --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
+                                        --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
+                                        --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
+                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${JSON_KEY}' \
+                                    """
+                                )
+                            } else {
+                                ApplyHelmChart(
+                                    releaseName: "${ID}",
+                                    chartName: "${SERVICE_NAME}",
+                                    chartValuesFile: "helm/values.yaml",
+                                    extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
+                                        --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
+                                        --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
+                                        --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
+                                        --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
+                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${JSON_KEY}' \
+                                    """
+                                )
+                            }
                         }
                     }
                 }
