@@ -280,8 +280,13 @@ def call(body) {
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
+                            // GOOGLE APPLICATION CREDENTIALS to access ALL buckets
                             withCredentials([string(credentialsId: 'sa-gcp-buckets', variable: "GC_KEY")]) {
-                                JSON_KEY = sh(returnStdout: true, script: 'echo \"${GC_KEY}\" | base64 -w 0').trim()
+                                GAC_KEY = sh(returnStdout: true, script: 'echo \"${GC_KEY}\" | base64 -w 0').trim()
+                            }
+                            // Service account to access Cloud SQL
+                            withCredentials([string(credentialsId: 'sa-gcp-sql', variable: "GC_KEY")]) {
+                                PROXY_KEY = sh(returnStdout: true, script: 'echo \"${GC_KEY}\" | base64 -w 0').trim()
                             }
                             if (binding.hasVariable('VERSION')) {
                                 ApplyHelmChart(
@@ -294,7 +299,8 @@ def call(body) {
                                         --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
                                         --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
                                         --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
-                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${JSON_KEY}' \
+                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
+                                        --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
                                     """
                                 )
                             } else {
@@ -307,7 +313,8 @@ def call(body) {
                                         --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
                                         --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
                                         --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
-                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${JSON_KEY}' \
+                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
+                                        --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
                                     """
                                 )
                             }
