@@ -264,7 +264,7 @@ def call(body) {
             stage('Deploy to TEST') {
                 environment {
                     home = "${WORKSPACE}"
-                    ConnectionStrings__default = "Host=localhost;Database=createdataservice_test;Username=cs;Password=@Mn%50dvKngB@sEu"
+                    ConnectionStrings__default = "Host=localhost;Database=createdataservice_develop;Username=cs;Password=@Mn%50dvKngB@sEu"
                     ASPNETCORE_ENVIRONMENT = "Integration"
                     Cloud__GCP__Storage__BucketName = "test-bucket"
                 }
