@@ -265,7 +265,7 @@ def call(body) {
                 environment {
                     home = "${WORKSPACE}"
                     ConnectionStrings__default = "Host=localhost;Database=createdataservice_develop;Username=cs;Password=@Mn%50dvKngB@sEu"
-                    ASPNETCORE_ENVIRONMENT = "Integration"
+                    ASPNETCORE_ENVIRONMENT = "Testing"
                     Cloud__GCP__Storage__BucketName = "test-bucket"
                 }
                 when {
