@@ -432,6 +432,7 @@ def call(body) {
             }
             failure {
                 echo 'I failed :('
+                cleanWs()
             }
             changed {
                 echo 'Things were different before...'
