@@ -22,7 +22,7 @@ def call(Map args = [:]) {
             "author=${sh([returnStdout: true, script: 'git log --format=\"%an\" -n 1']).trim()}",
             "identifier=${sh([returnStdout: true, script: 'uuidgen']).trim()}",
     ]) {
-        if (!version?.trim()) {
+        if (!"${version}"?.trim()) {
             println("Our version string is set to ${version}")
             image_name = "${registry}/${service_name}:${branch}-${version}"
         } else {
