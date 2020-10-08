@@ -281,7 +281,7 @@ def call(body) {
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
                             KUBE_CNF = "k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment"
                             withCredentials([string(credentialsId: 'sa-gcp-buckets', variable: "GC_KEY")]) {
-                                JSON_KEY = sh(returnStdout: true, script:"echo ${GC_KEY} | base64 -w 0").trim()
+                                JSON_KEY = sh(returnStdout: true, script: 'echo \"${GC_KEY}\" | base64 -w 0').trim()
                             }
                             println("The KEY: ${JSON_KEY}")
                             if (binding.hasVariable('VERSION')) {
