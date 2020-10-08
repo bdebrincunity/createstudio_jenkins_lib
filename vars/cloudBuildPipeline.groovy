@@ -168,7 +168,7 @@ def call(body) {
                                 sh("apk add docker-compose")
                                 sh("docker-compose -f docker/docker-compose.test.yml up -d db")
                                 docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1').inside("-w /workspace -v ${PWD}:/workspace -v /var/run/docker.sock:/var/run/docker.sock --network container:Psql -u 1000 -it") {
-                                    sh("dotnet test --logger \"trx;LogFileName=results.trx\" || true")
+                                    sh("dotnet test --logger \"trx;LogFileName=results.trx\"")
                                 } 
                                 // Sidecar containers should work, but for some reason it's not. Will leave this here for future work.
                                 // https://www.jenkins.io/doc/book/pipeline/docker/#running-sidecar-containers
