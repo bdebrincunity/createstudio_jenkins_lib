@@ -19,7 +19,7 @@ def call(body) {
     // Get Jenkinsfile path from the project
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
     // Obtain only the Project DIR so this will be our working directory
-    def PROJECT_DIR = new File(currentScriptPath).parent
+    def JENKINSFILE_DIR = new File(currentScriptPath).parent
 
     /*
         This is the main pipeline section with the stages of the CI/CD
@@ -38,6 +38,7 @@ def call(body) {
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
+            PROJECT_DIR = "${JENKINSFILE_DIR}"
             DEPLOY_PROD = false
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'

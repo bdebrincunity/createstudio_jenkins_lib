@@ -19,7 +19,7 @@ def call(body) {
     // Get Jenkinsfile path from the project
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
     // Obtain only the Project DIR so this will be our working directory
-    def PROJECT_DIR = new File(currentScriptPath).parent
+    def JENKINSFILE_DIR = new File(currentScriptPath).parent
     def build_script = libraryResource 'com/createstudio/scripts/unity_build.sh'
 
     /*
@@ -39,6 +39,7 @@ def call(body) {
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
+            PROJECT_DIR = "${JENKINSFILE_DIR}"
             DEPLOY_PROD = false
             DOCKER_REG = 'gcr.io/unity-labs-createstudio-test'
             HELM_REPO = 'https://chartmuseum.internal.unity3d.com/'
@@ -423,6 +424,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
+                SendSlack("${currentBuild.currentResult}")
             }
             success {
                 echo 'I succeeded!'
@@ -432,7 +434,6 @@ def call(body) {
             }
             failure {
                 echo 'I failed :('
-                cleanWs()
             }
             changed {
                 echo 'Things were different before...'
