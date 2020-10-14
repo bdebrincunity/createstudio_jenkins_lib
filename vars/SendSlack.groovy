@@ -22,10 +22,10 @@ def call(def buildStatus) {
     // for some reason it does not work though.... Saving for future use
     //def userIds = slackUserIdsFromCommitters()
     //def userIdsString = userIds.collect { "<@$it>" }.join(' ')
-    def userId = slackUserIdFromEmail(author_email)
+    def userEmail = slackUserIdFromEmail(author_email)
 
     // build out message
-    def msg = "BuildStatus: *${buildStatus}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: 'git email not set'}>\nCommitDesc: `${last_commit}`\nCommitID: `${commit}`\n"
+    def msg = "BuildStatus: *${buildStatus}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userEmail ?: author '- git email not set'}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`\n"
     // get our colors
     def colorName = colorMap[buildStatus]
     // send slack message based on above criteria
