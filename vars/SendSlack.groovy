@@ -8,7 +8,8 @@ def call(def buildStatus, def stageId) {
     def getGitAuthor = {
         commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
         author = sh(returnStdout: true, script: "git --no-pager show -s --format='%an' ${commit}").trim()
-        author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' ${commit}").trim()
+        //author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' ${commit}").trim()
+        author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae'").trim()
     }
 
     getLastCommitMessage()

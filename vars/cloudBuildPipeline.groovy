@@ -75,8 +75,6 @@ def call(body) {
                     script {
                         echo "Pull custom docker images"
                         last_started = getCurrentStage()
-                        echo "AuthorEmail: ${GIT_AUTHOR_EMAIL}"
-                        echo "AuthorUser: ${GIT_AUTHOR_USERNAME}"
                         PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                         echo "Global ID set to ${ID}"
                         def listName = PROJECT_TYPE.split(",")
