@@ -15,6 +15,7 @@ def call(def buildStatus, def stageId) {
     getGitAuthor()
     // set default of build status
     buildStatus =  buildStatus ?: 'STARTED'
+    stage = stageId.trim()
     // define our colous based on build status
     def colorMap = [ 'STARTED': '#F0FFFF', 'SUCCESS': '#008B00', 'UNSTABLE': '#FFFE89', 'FAILURE': '#FF0000' ]
     // Lookup user ids from changeset commit authors
@@ -23,25 +24,16 @@ def call(def buildStatus, def stageId) {
     //def userIds = slackUserIdsFromCommitters()
     //def userIdsString = userIds.collect { "<@$it>" }.join(' ')
     def userId = slackUserIdFromEmail(author_email)
+    // build out message
+    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
+    // get our colors
+    def colorName = colorMap[buildStatus]
+    // send slack message based on above criteria
+    def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
-        // build out message
-        def msg = """BuildStatus: *${buildStatus}*\n \
-                     Stage: *${stageId}*\n \
-                     Project: *${env.SERVICE_NAME}*\n \
-                     BuildNumber: *${env.BUILD_NUMBER}*\n \
-                     URL: ${env.BUILD_URL}\n \
-                     Author: <@${userId}>\n \
-                     Changes: ```${last_commit}```\n \
-                     CommitID: `${commit}`\n
-                  """
-        // get our colors
-        def colorName = colorMap[buildStatus]
-        // send slack message based on above criteria
-        def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
-
         def files = findFiles(glob: "${dir}/unity-build-player*.log")
         if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
             files.each { file ->
