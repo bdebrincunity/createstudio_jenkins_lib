@@ -289,36 +289,20 @@ def call(body) {
                             withCredentials([string(credentialsId: 'sa-gcp-sql', variable: "GC_KEY")]) {
                                 PROXY_KEY = sh(returnStdout: true, script: 'echo \"${GC_KEY}\" | base64 -w 0').trim()
                             }
-                            if (binding.hasVariable('VERSION')) {
-                                ApplyHelmChart(
-                                    releaseName: "${ID}",
-                                    chartName: "${SERVICE_NAME}",
-                                    chartValuesFile: "helm/values.yaml",
-                                    extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
-                                        --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
-                                        --set image.tag=${BRANCH}-${VERSION} \
-                                        --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
-                                        --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
-                                        --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
-                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
-                                        --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
-                                    """
-                                )
-                            } else {
-                                ApplyHelmChart(
-                                    releaseName: "${ID}",
-                                    chartName: "${SERVICE_NAME}",
-                                    chartValuesFile: "helm/values.yaml",
-                                    extraParams: """--kubeconfig ${KUBE_CNF} --namespace ${namespace} \
-                                        --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
-                                        --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
-                                        --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
-                                        --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
-                                        --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
-                                        --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
-                                    """
-                                )
-                            }
+                            ApplyHelmChart(
+                                releaseName: "${ID}",
+                                chartName: "${SERVICE_NAME}",
+                                chartValuesFile: "helm/values.yaml",
+                                extraParams: """--wait --timeout 30 --atomic --kubeconfig ${KUBE_CNF} --namespace ${namespace} \
+                                    --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
+                                    --set image.tag=${BRANCH}-${VERSION} \
+                                    --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
+                                    --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
+                                    --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
+                                    --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
+                                    --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
+                                """
+                            )
                         }
                     }
                 }
