@@ -293,7 +293,7 @@ def call(body) {
                                 releaseName: "${ID}",
                                 chartName: "${SERVICE_NAME}",
                                 chartValuesFile: "helm/values.yaml",
-                                extraParams: """--wait --timeout 30 --atomic --kubeconfig ${KUBE_CNF} --namespace ${namespace} \
+                                extraParams: """--wait --timeout 30s --atomic --kubeconfig ${KUBE_CNF} --namespace ${namespace} \
                                     --set image.repository=${DOCKER_REG}/${SERVICE_NAME} \
                                     --set image.tag=${BRANCH}-${VERSION} \
                                     --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
