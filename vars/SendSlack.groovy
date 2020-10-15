@@ -1,4 +1,4 @@
-def call(def buildStatus) {
+def call(def buildStatus, def stageId) {
 
 
     def getLastCommitMessage = {
@@ -7,8 +7,10 @@ def call(def buildStatus) {
 
     def getGitAuthor = {
         commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-        author = sh(returnStdout: true, script: "git --no-pager show -s --format='%an' ${commit}").trim()
-        author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' ${commit}").trim()
+        //author = sh(returnStdout: true, script: "git --no-pager show -s --format='%an' ${commit}").trim()
+        author = sh(returnStdout: true, script: "git --no-pager show -s --format='%an'").trim()
+        //author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' ${commit}").trim()
+        author_email = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae'").trim()
     }
 
     getLastCommitMessage()
@@ -20,18 +22,18 @@ def call(def buildStatus) {
     // Lookup user ids from changeset commit authors
     // https://github.com/jenkinsci/slack-plugin#user-id-look-up
     // for some reason it does not work though.... Saving for future use
-    //def userIds = slackUserIdsFromCommitters()
-    //def userIdsString = userIds.collect { "<@$it>" }.join(' ')
+    def userIds = slackUserIdsFromCommitters()
+    def userIdsString = userIds.collect { "<@$it>" }.join(' ')
+    println "author: ${author} , author_email: ${author_email}"
+    println "userID's ${userIdsString}"
     def userId = slackUserIdFromEmail(author_email)
-
     // build out message
-    def msg = "BuildStatus: *${buildStatus}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: 'git email not set'}>\nCommitDesc: `${last_commit}`\nCommitID: `${commit}`\n"
+    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: 'git email not set'}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
     // get our colors
     def colorName = colorMap[buildStatus]
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
-    //def files = findFiles(glob: 'unity-build-player*.log')
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
