@@ -1,4 +1,4 @@
-def call(def buildStatus) {
+def call(def buildStatus, def stageId) {
 
 
     def getLastCommitMessage = {
@@ -26,11 +26,10 @@ def call(def buildStatus) {
 
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
-            "stage=${sh([returnStdout: true, script: 'echo ${last_started}']).trim()}",
     ]) {
         // build out message
         def msg = """BuildStatus: *${buildStatus}*\n \
-                     Stage: *${stage}*\n \
+                     Stage: *${stageId}*\n \
                      Project: *${env.SERVICE_NAME}*\n \
                      BuildNumber: *${env.BUILD_NUMBER}*\n \
                      URL: ${env.BUILD_URL}\n \
