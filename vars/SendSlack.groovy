@@ -26,11 +26,11 @@ def call(def buildStatus) {
 
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
-            "stage_name=${sh([returnStdout: true, script: 'echo ${last_started}']).trim()}",
+            "stage=${sh([returnStdout: true, script: 'echo ${last_started}']).trim()}",
     ]) {
         // build out message
         def msg = """BuildStatus: *${buildStatus}*\n \
-                     Stage: *${STAGE_NAME}*\n \
+                     Stage: *${stage}*\n \
                      Project: *${env.SERVICE_NAME}*\n \
                      BuildNumber: *${env.BUILD_NUMBER}*\n \
                      URL: ${env.BUILD_URL}\n \
