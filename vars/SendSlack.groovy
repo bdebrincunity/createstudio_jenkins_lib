@@ -31,7 +31,7 @@ def call(def buildStatus, def stageId) {
     println "userID's ${userIdsString}"
     def userId = slackUserIdFromEmail(author_email)
     // build out message
-    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: 'git email not set'}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
+    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
     // get our colors
     def colorName = colorMap[buildStatus]
     // send slack message based on above criteria
