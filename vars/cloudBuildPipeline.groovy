@@ -321,8 +321,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
-                //SendSlack("${currentBuild.currentResult}", "${last_started}")
-                SendSlack("${currentBuild.currentResult}")
+                SendSlack("${currentBuild.currentResult}", "${last_started}")
             }
             success {
                 echo 'I succeeded!'
