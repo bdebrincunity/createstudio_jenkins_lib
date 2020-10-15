@@ -2,7 +2,12 @@ def call(def buildStatus, def stageId) {
 
 
     def getLastCommitMessage = {
-        last_commit = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+        if("${env.BRANCH_NAME}" ==~ /(main|staging|release|develop)/) {
+            last_commit = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+        } else {
+            // skip the "last commit" as we are using the merge with target revision strategy for PRs
+            last_commit = sh(returnStdout: true, script: "git log -1 --skip 1 --pretty=format:%h - %an, %ar : %B").trim()
+        }
     }
 
     def getGitAuthor = {
