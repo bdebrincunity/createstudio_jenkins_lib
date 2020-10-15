@@ -150,6 +150,7 @@ def call(body) {
                                     sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}"
                                 }
                                 echo "Running local docker tests"
+                                sh "exit 1"
 
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
