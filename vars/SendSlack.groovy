@@ -15,7 +15,6 @@ def call(def buildStatus, def stageId) {
     getGitAuthor()
     // set default of build status
     buildStatus =  buildStatus ?: 'STARTED'
-    stage = stageId.trim()
     // define our colous based on build status
     def colorMap = [ 'STARTED': '#F0FFFF', 'SUCCESS': '#008B00', 'UNSTABLE': '#FFFE89', 'FAILURE': '#FF0000' ]
     // Lookup user ids from changeset commit authors
@@ -23,6 +22,7 @@ def call(def buildStatus, def stageId) {
     // for some reason it does not work though.... Saving for future use
     //def userIds = slackUserIdsFromCommitters()
     //def userIdsString = userIds.collect { "<@$it>" }.join(' ')
+    println "author: ${author} , author_email: ${author_email}"
     def userId = slackUserIdFromEmail(author_email)
     // build out message
     def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
