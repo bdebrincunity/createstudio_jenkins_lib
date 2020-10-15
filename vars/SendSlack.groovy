@@ -22,19 +22,27 @@ def call(def buildStatus) {
     // for some reason it does not work though.... Saving for future use
     //def userIds = slackUserIdsFromCommitters()
     //def userIdsString = userIds.collect { "<@$it>" }.join(' ')
-    def userEmail = slackUserIdFromEmail(author_email)
+    def userId = slackUserIdFromEmail(author_email)
 
-    // build out message
-    def msg = "BuildStatus: *${buildStatus}*\nStage: *${STAGE_NAME}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userEmail ?: 'git email not set'}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`\n"
-    // get our colors
-    def colorName = colorMap[buildStatus]
-    // send slack message based on above criteria
-    def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
-
-    //def files = findFiles(glob: 'unity-build-player*.log')
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
+            "stage_name=${sh([returnStdout: true, script: 'echo ${last_started}']).trim()}",
     ]) {
+        // build out message
+        def msg = """BuildStatus: *${buildStatus}*\n \
+                     Stage: *${STAGE_NAME}*\n \
+                     Project: *${env.SERVICE_NAME}*\n \
+                     BuildNumber: *${env.BUILD_NUMBER}*\n \
+                     URL: ${env.BUILD_URL}\n \
+                     Author: <@${userId}>\n \
+                     Changes: ```${last_commit}```\n \
+                     CommitID: `${commit}`\n
+                  """
+        // get our colors
+        def colorName = colorMap[buildStatus]
+        // send slack message based on above criteria
+        def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
+
         def files = findFiles(glob: "${dir}/unity-build-player*.log")
         if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
             files.each { file ->

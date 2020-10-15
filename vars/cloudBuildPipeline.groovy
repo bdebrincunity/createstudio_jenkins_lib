@@ -74,6 +74,7 @@ def call(body) {
                 steps {
                     script {
                         echo "Pull custom docker images"
+                        last_started = getCurrentStage()
                         PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                         echo "Global ID set to ${ID}"
                         def listName = PROJECT_TYPE.split(",")
@@ -88,6 +89,7 @@ def call(body) {
                 steps {
                     container('cloudbees-jenkins-worker') {
                         script {
+                            last_started = getCurrentStage()
                             sshagent (credentials: ['ssh_createstudio']) {
                                 // Update url to use ssh instead of https
                                 sh("git config --global --add url.\"git@github.com:\".insteadOf \"https://github.com/\"")
@@ -114,6 +116,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
@@ -132,6 +135,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 // Kill container in case there is a leftover
                                 sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
                                 echo "Building application and Docker image"
@@ -165,6 +169,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 sh("apk update")
                                 sh("apk add docker-compose")
                                 sh("docker-compose -f docker/docker-compose.test.yml up -d db")
@@ -217,7 +222,8 @@ def call(body) {
                 }
                 steps {
                     dir("${PROJECT_DIR}") {
-                            script {
+                        script {
+                            last_started = getCurrentStage()
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm")
                             // Bug in UploadHelm, doesn't actually take extra params properly
@@ -244,6 +250,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
@@ -277,6 +284,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
+                            last_started = getCurrentStage()
                             env = 'test'
                             echo "Deploying application ${ID} to ${env} kubernetes cluster "
                             downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
