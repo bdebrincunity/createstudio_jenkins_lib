@@ -81,9 +81,11 @@ def call(def buildStatus, def stageId) {
     def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
     if ("$JOB_NAME" ==~ "CORE") {
+        echo "We are in a CORE job"
         def files = reportOnTestsForBuild()
     } else {
-         def files = findFiles(glob: "**/unity-build-player*.log")
+        echo "We are in a UNITY job"
+        def files = findFiles(glob: "**/unity-build-player*.log")
     }
 
     withEnv([
