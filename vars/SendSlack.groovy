@@ -80,7 +80,7 @@ def call(def buildStatus, def stageId) {
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
-    if ("$JOB_NAME" ==~ "CORE") {
+    if ("${JOB_NAME}".contains("CORE")) {
         echo "We are in a CORE job"
         def files = reportOnTestsForBuild()
     } else {
