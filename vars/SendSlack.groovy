@@ -97,12 +97,12 @@ def call(def buildStatus, def stageId) {
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE' && !isCoreJob) {
-            files.each { file ->
-                slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
+        if(!isCoreJob) {
+            if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+                files.each { file ->
+                    slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
+                }
             }
-        } else {
-            //slackResponse
         }
     }
 }
