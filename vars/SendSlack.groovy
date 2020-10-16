@@ -1,3 +1,4 @@
+@NonCPS
 def reportOnTestsForBuild() {
   def build = manager.build
   println("Build Number: ${build.number}")
@@ -92,7 +93,7 @@ def call(def buildStatus, def stageId) {
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE' || buildStatus == 'SUCCESS') {
             files.each { file ->
                 slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
             }
