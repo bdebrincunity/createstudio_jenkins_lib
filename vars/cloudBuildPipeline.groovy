@@ -224,6 +224,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
+                            sh "exit 1"
                             last_started = getCurrentStage()
                             echo "Packaging helm chart"
                             PackageHelmChart(chartDir: "./helm")

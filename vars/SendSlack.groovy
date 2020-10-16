@@ -1,3 +1,46 @@
+def reportOnTestsForBuild() {
+  def build = manager.build
+  println("Build Number: ${build.number}")
+  if (build.getAction(hudson.tasks.junit.TestResultAction.class) == null) {
+    println("No tests")
+    return ("No Tests")
+  }
+
+  // The string that will contain our report.
+  String testReport;
+
+  testReport = "URL: ${env.BUILD_URL}\n"
+
+  def testResults =    build.getAction(hudson.tasks.junit.TestResultAction.class).getFailCount();
+  def failed = build.getAction(hudson.tasks.junit.TestResultAction.class).getFailedTests()
+  println("Failed Count: ${testResults}")
+  println("Failed Tests: ${failed}")
+  def failures = [:]
+
+  def result = build.getAction(hudson.tasks.junit.TestResultAction.class).result
+
+  if (result == null) {
+    testReport = testReport + "No test results"
+  } else if (result.failCount < 1) {
+    testReport = testReport + "No failures"
+  } else {
+    testReport = testReport + "overall fail count: ${result.failCount}\n\n"
+  failedTests = result.getFailedTests();
+
+  failedTests.each { test ->
+    failures.put(test.fullDisplayName, test)
+    testReport = testReport + "\n-------------------------------------------------\n"
+    testReport = testReport + "Failed test: ${test.fullDisplayName}\n" +
+    "name: ${test.name}\n" +
+    "age: ${test.age}\n" +
+    "failCount: ${test.failCount}\n" +
+    "failedSince: ${test.failedSince}\n" +
+    "errorDetails: ${test.errorDetails}\n"
+    }
+  }
+  return (testReport)
+}
+
 def call(def buildStatus, def stageId) {
 
 
@@ -37,10 +80,16 @@ def call(def buildStatus, def stageId) {
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
+    if ("$JOB_NAME" ==~ "CORE") {
+        def files = reportOnTestsForBuild()
+    } else {
+         def files = findFiles(glob: "**/unity-build-player*.log")
+    }
+
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
-        def files = findFiles(glob: "${dir}/unity-build-player*.log")
+        //def files = findFiles(glob: "${dir}/unity-build-player*.log")
         if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
             files.each { file ->
                 slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
