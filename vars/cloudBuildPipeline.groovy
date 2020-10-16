@@ -142,12 +142,12 @@ def call(body) {
                                 // Check if VERSION var is set from Step 3
                                 if (binding.hasVariable('VERSION')) {
                                     myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
-                                    echo "Starting ${SERVICE_NAME} container"
-                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}"
+                                    //echo "Starting ${SERVICE_NAME} container"
+                                    //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}"
                                 } else {
                                     myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME} . || errorExit \"Building ${SERVICE_NAME} failed\"")
-                                    echo "Starting ${SERVICE_NAME} container"
-                                    sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}"
+                                    //echo "Starting ${SERVICE_NAME} container"
+                                    //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}"
                                 }
                                 echo "Running local docker tests"
 
