@@ -83,7 +83,7 @@ def call(def buildStatus, def stageId) {
 
     if ("${JOB_NAME}".contains("CORE")) {
         echo "We are in a CORE job"
-        def files = reportOnTestsForBuild()
+        files = reportOnTestsForBuild()
         println "This is the report: ${files}"
     } else {
         echo "We are in a UNITY job"
