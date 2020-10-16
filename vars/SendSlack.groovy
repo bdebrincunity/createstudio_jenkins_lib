@@ -25,7 +25,7 @@ def call(def buildStatus, def stageId) {
     // Lookup user ids from changeset commit authors
     // https://github.com/jenkinsci/slack-plugin#user-id-look-up
     // for some reason it does not work though.... Saving for future use
-    def userIds = slackUserIdsFromCommitters(author)
+    def userIds = slackUserIdsFromCommitters()
     def userIdsString = userIds.collect { "<@$it>" }.join(' ')
     println "author: ${author} , author_email: ${author_email}"
     println "userID's ${userIdsString}"
