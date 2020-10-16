@@ -81,7 +81,6 @@ def call(body) {
                         listName.each { item ->
                             echo "${item}"
                         }
-                        sh "exit 1"
                     }
                 }
             }
