@@ -81,25 +81,28 @@ def call(def buildStatus, def stageId) {
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
 
-    if ("${JOB_NAME}".contains("CORE")) {
-        echo "We are in a CORE job"
-        files = reportOnTestsForBuild()
+    // check if we are running a CORE job
+    Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
+
+    if (isCoreJob) {
+        echo "We are in a CORE job, will have to implement logs if we have em"
+        //files = reportOnTestsForBuild()
         println "This is the report: ${files}"
     } else {
         echo "We are in a UNITY job"
-        def files = findFiles(glob: "**/unity-build-player*.log")
+        files = findFiles(glob: "**/unity-build-player*.log")
     }
 
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE' || buildStatus == 'SUCCESS') {
+        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE' && !isCoreJob) {
             files.each { file ->
                 slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
             }
         } else {
-            slackResponse
+            //slackResponse
         }
     }
 }
