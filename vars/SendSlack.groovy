@@ -97,7 +97,9 @@ def call(def buildStatus, def stageId) {
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if(!isCoreJob) {
+        if(isCoreJob) {
+            echo "We will need to find logging for CORE modules"
+        } else {
             if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
                 files.each { file ->
                     slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
