@@ -100,6 +100,7 @@ def call(def buildStatus, def stageId) {
         if(isCoreJob) {
             echo "We will need to find logging for CORE modules"
         } else {
+            echo "do we still make it here?"
             if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
                 files.each { file ->
                     slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
