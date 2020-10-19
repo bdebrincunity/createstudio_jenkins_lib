@@ -46,12 +46,7 @@ def call(def buildStatus, def stageId) {
 
 
     def getLastCommitMessage = {
-        if("${env.BRANCH_NAME}" ==~ /(main|staging|release|develop)/) {
-            last_commit = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
-        } else {
-            // skip the "last commit" as we are using the merge with target revision strategy for PRs
-            last_commit = sh(returnStdout: true, script: "git log -1 --skip 1 --pretty=format:'%h - %an, %ar : %B'").trim()
-        }
+        last_commit = sh(returnStdout: true, script: "git log remotes/origin/${env.BRANCH_NAME} -1 --pretty=format:'%h - %an, %ar : %B'").trim()
     }
 
     def getGitAuthor = {
@@ -69,17 +64,21 @@ def call(def buildStatus, def stageId) {
     // Lookup user ids from changeset commit authors
     // https://github.com/jenkinsci/slack-plugin#user-id-look-up
     // for some reason it does not work though.... Saving for future use
+    sh """
+        git config user.name ${author}
+        git config user.email ${author_email}
+    """
     def userIds = slackUserIdsFromCommitters()
     def userIdsString = userIds.collect { "<@$it>" }.join(' ')
     println "author: ${author} , author_email: ${author_email}"
     println "userID's ${userIdsString} or ${userIds}"
     def userId = slackUserIdFromEmail(author_email)
     // build out message
-    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nChanges: ```${last_commit}```\nCommitID: `${commit}`"
+    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`"
     // get our colors
     def colorName = colorMap[buildStatus]
     // send slack message based on above criteria
-    def slackResponse = slackSend(color: colorName, message: "${msg}", notifyCommitters: true)
+    def slackResponse = slackSend(color: colorName, channel: "#${env.SLACK_CHANNEL}", message: "${msg}", notifyCommitters: true)
 
     // check if we are running a CORE job
     Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
@@ -87,10 +86,11 @@ def call(def buildStatus, def stageId) {
     if (isCoreJob) {
         echo "We are in a CORE job"
         // Save below for future optimization, right now its just stdout
-        report = reportOnTestsForBuild()
-        println "This is the report: ${report}"
-        files = findFiles(glob: "**/**.trx")
-        println "Log files from tests: ${files}"
+        def report = reportOnTestsForBuild()
+        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+            sh("echo \"${report}\" >> test_report.log")
+            files = findFiles(glob: "**/*.log")
+        }
     } else {
         echo "We are in a UNITY job"
         files = findFiles(glob: "**/unity-build-player*.log")
@@ -103,7 +103,7 @@ def call(def buildStatus, def stageId) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
         if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
             files.each { file ->
-                slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
+                slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching *" + file.name + "* to give you some context")
             }
         }
     }

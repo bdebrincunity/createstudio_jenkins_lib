@@ -35,6 +35,7 @@ def call(body) {
         // Some global default variables
         environment {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
+            SLACK_CHANNEL = "${pipelineParams.SLACK_CHANNEL}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
@@ -136,21 +137,20 @@ def call(body) {
                         container('docker') {
                             script {
                                 last_started = getCurrentStage()
-                                // Kill container in case there is a leftover
-                                sh "[ -z \"\$(docker ps -a | grep ${SERVICE_NAME} 2>/dev/null)\" ] || docker rm -f ${SERVICE_NAME}"
                                 echo "Building application and Docker image"
-                                // Check if VERSION var is set from Step 3
                                 if (binding.hasVariable('VERSION')) {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    sh("docker rm -f ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} || true")
+                                    docker.build("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}", "-f Dockerfile .")
+                                    myContainer = docker.image("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}")
                                     //echo "Starting ${SERVICE_NAME} container"
                                     //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}"
                                 } else {
-                                    myapp = sh("docker build -t ${DOCKER_REG}/${SERVICE_NAME} . || errorExit \"Building ${SERVICE_NAME} failed\"")
+                                    sh("docker rm -f ${DOCKER_REG}/${SERVICE_NAME}-${BRANCH} || true")
+                                    docker.build("${DOCKER_REG}/${SERVICE_NAME}-${BRANCH}", "-f Dockerfile .")
+                                    myContainer = docker.image("${DOCKER_REG}/${SERVICE_NAME}-${BRANCH}:latest")
                                     //echo "Starting ${SERVICE_NAME} container"
                                     //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}"
                                 }
-                                echo "Running local docker tests"
-
                                 host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
                         }
@@ -160,8 +160,7 @@ def call(body) {
             stage('Test Project') {
                 environment {
                     home = "${WORKSPACE}"
-                    // Connection string for PSQL docker container
-                    ConnectionStrings__default = "Host=localhost;Database=createdataservice_test;Username=postgres;Password=Aa123456"
+                    ConnectionStrings__default = "Host=${SERVICE_NAME}-${BRANCH};Database=createdataservice_test;Username=postgres;Password=Aa123456"
                     ASPNETCORE_ENVIRONMENT = "Testing"
                     Cloud__GCP__Storage__BucketName = "test-bucket"
                 }
@@ -170,16 +169,17 @@ def call(body) {
                         container('docker') {
                             script {
                                 last_started = getCurrentStage()
-                                sh("apk update")
-                                sh("apk add docker-compose")
-                                sh("docker-compose -f docker/docker-compose.test.yml up -d db")
-                                docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1').inside("-w /workspace -v ${PWD}:/workspace -v /var/run/docker.sock:/var/run/docker.sock --network container:Psql -u 1000 -it") {
+                                def myDbContainer = "${SERVICE_NAME}-${BRANCH}-db"
+                                sh("docker rm -f  ${myDbContainer} || true")
+                                sh("docker run -d -e 'POSTGRES_PASSWORD=Aa123456' -e 'POSTGRES_DB=createdataservice_test' -it --name ${myDbContainer} postgres:12")
+                                docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.12').inside("--network container:${myDbContainer} -w /workspace -v ${PWD}:/workspace -u 1000 -it") {
                                     sh("dotnet test --logger \"trx;LogFileName=results.trx\"")
-                                } 
-                                // Sidecar containers should work, but for some reason it's not. Will leave this here for future work.
+                                }
                                 // https://www.jenkins.io/doc/book/pipeline/docker/#running-sidecar-containers
-                                /*docker.image('postgres:12').withRun("-e PGPASSWORD=Aa123456 -e POSTGRES_DB=createdataservice_test") { c ->
-                                    docker.image('postgres:12').inside("--link ${c.id}:pg") {
+                                // keep getting connection refused.......
+                                /*docker.image('postgres:12').withRun("-e POSTGRES_PASSWORD=Aa123456 -e POSTGRES_DB=createdataservice_test -it") { c ->
+                                    docker.image('postgres:12').inside("--link ${c.id}:psql -v /var/run/postgresql:/var/run/postgresql -p 5432:5432 -it") {
+                                        // doesnt work, I think its due to running docker in docker and is reading psql from the host and not container
                                         sh """
                                             until ! pg_isready
                                             do
@@ -189,8 +189,10 @@ def call(body) {
                                             sleep 2
                                         """
                                     }
-                                    docker.image("mcr.microsoft.com/dotnet/core/sdk:3.1").inside("--link ${c.id}:pg") {
-                                        sh("dotnet test")
+                                    // Need to switch this to the actual built container from above
+                                    //myContainer.inside("--link ${c.id}:psql -it") {
+                                    docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.12').inside("--link ${c.id}:psql -w /workspace -v ${PWD}:/workspace -it") {
+                                        sh("dotnet test --logger \"trx;LogFileName=results.trx\"")
                                     }
                                 }*/
                             }
@@ -199,12 +201,12 @@ def call(body) {
                 }
                 post {
                     always {
+                        echo 'Publishing Test Results!'
                         xunit (
                             thresholds: [failed(failureThreshold: '0', unstableThreshold: '2')],
                             tools: [MSTest(deleteOutputFiles: true, failIfNotNew: true, pattern: '**/*.trx', skipNoTestFiles: false, stopProcessingIfError: true)]
                         )
                         step([$class: 'MSTestPublisher', testResultsFile:"**/*.trx", failOnError: true, keepLongStdio: true])
-                        echo 'Publishing Test Results!'
                     }
                 }
             }

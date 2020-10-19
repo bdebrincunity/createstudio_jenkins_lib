@@ -36,6 +36,7 @@ def call(body) {
         // Some global default variables
         environment {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
+            SLACK_CHANNEL = "${pipelineParams.SLACK_CHANNEL}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
