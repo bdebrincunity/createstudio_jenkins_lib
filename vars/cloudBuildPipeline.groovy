@@ -173,7 +173,7 @@ def call(body) {
                                 sh("docker rm -f  ${myDbContainer} || true")
                                 sh("docker run -d -e 'POSTGRES_PASSWORD=Aa123456' -e 'POSTGRES_DB=createdataservice_test' -it --name ${myDbContainer} postgres:12")
                                 docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.12').inside("--network container:${myDbContainer} -w /workspace -v ${PWD}:/workspace -u 1000 -it") {
-                                    sh("dotnet test --logger \"trx;LogFileName=results.trx\"")
+                                    sh("dotnet test --logger \"trx;LogFileName=results.trx\" --blame")
                                 }
                                 // https://www.jenkins.io/doc/book/pipeline/docker/#running-sidecar-containers
                                 // keep getting connection refused.......
