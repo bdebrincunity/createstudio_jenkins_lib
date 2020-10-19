@@ -85,25 +85,25 @@ def call(def buildStatus, def stageId) {
     Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
 
     if (isCoreJob) {
-        echo "We are in a CORE job, will have to implement logs if we have em"
-        files = reportOnTestsForBuild()
-        println "This is the report: ${files}"
+        echo "We are in a CORE job"
+        // Save below for future optimization, right now its just stdout
+        report = reportOnTestsForBuild()
+        println "This is the report: ${report}"
+        files = findFiles(glob: "**/**.trx")
+        println "Log files from tests: ${files}"
     } else {
         echo "We are in a UNITY job"
         files = findFiles(glob: "**/unity-build-player*.log")
+        println "This is the report: ${files}"
     }
 
     withEnv([
             "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
     ]) {
         //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if(isCoreJob) {
-            echo "We will need to find logging for CORE modules"
-        } else {
-            if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
-                files.each { file ->
-                    slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
-                }
+        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+            files.each { file ->
+                slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching " + file.name + " to give you some context")
             }
         }
     }
