@@ -74,6 +74,7 @@ def call(body) {
                 }
                 steps {
                     script {
+                        last_started = getCurrentStage()
                         echo "Pull custom docker images"
                         PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')
                         echo "Global ID set to ${ID}"
@@ -89,6 +90,7 @@ def call(body) {
                 steps {
                     container('cloudbees-jenkins-worker') {
                         script {
+                            last_started = getCurrentStage()
                             sshagent (credentials: ['ssh_createstudio']) {
                                 // Update url to use ssh instead of https
                                 sh("git config --global --add url.\"git@github.com:\".insteadOf \"https://github.com/\"")
@@ -165,6 +167,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
@@ -188,6 +191,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -228,6 +232,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -266,6 +271,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 withCredentials([
                                     [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
                                     [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
@@ -330,6 +336,7 @@ def call(body) {
                 steps {
                     dir("${PROJECT_DIR}") {
                         script {
+                            last_started = getCurrentStage()
                             echo "Pushing Docker Image -> ${DOCKER_REG}/${ID}:${VERSION}"
                             DockerPush(gkeStrCredsID: 'sa-gcp-jenkins')
                             echo "Packaging helm chart"
@@ -381,6 +388,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPost = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     // Check if manifest has been updated, if so, re-run incrementing version
@@ -425,7 +433,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 archiveArtifacts allowEmptyArchive: false, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
-                SendSlack("${currentBuild.currentResult}")
+                SendSlack("${currentBuild.currentResult}", "${last_started}")
             }
             success {
                 echo 'I succeeded!'
