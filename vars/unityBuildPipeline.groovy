@@ -223,6 +223,92 @@ def call(body) {
                     }
                 }
             }
+            stage('Create iOS Build') {
+                environment {
+                    type = "ios"
+                }
+                when {
+                    expression { "${PROJECT_TYPE}".contains('ios') }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                last_started = getCurrentStage()
+                                withCredentials([
+                                    [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
+                                ]){
+                                    docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                        sshagent (credentials: ['ssh_createstudio']) {
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    echo "Did we receive ${CURRENT_VERSION} ?"
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
+                                        }
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
+                                        sh("ls -la ${project}")
+                                        echo ("Built ${project} !")
+                                        if ("${type}" == 'mac') {
+                                            // Update permissions to OSX project, needed to launch
+                                            sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
+                                        }
+                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            stage('Create Android Build') {
+                environment {
+                    type = "android"
+                }
+                when {
+                    expression { "${PROJECT_TYPE}".contains('android') }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                last_started = getCurrentStage()
+                                withCredentials([
+                                    [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
+                                    [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
+                                ]){
+                                    docker.image("gableroux/unity3d:2019.4.3f1-${type}").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                        sshagent (credentials: ['ssh_createstudio']) {
+                                            if (binding.hasVariable('VERSION')) {
+                                                withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    echo "Did we receive ${CURRENT_VERSION} ?"
+                                                    sh("files/build.sh ${type}")
+                                                }
+                                            } else {
+                                                sh("files/build.sh ${type}")
+                                            }
+                                        }
+                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
+                                        sh("ls -la ${project}")
+                                        echo ("Built ${project} !")
+                                        if ("${type}" == 'mac') {
+                                            // Update permissions to OSX project, needed to launch
+                                            sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
+                                        }
+                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             stage('Create Windows Build') {
                 environment { type = "windows" }
                 when {
