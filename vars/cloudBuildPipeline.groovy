@@ -309,6 +309,7 @@ def call(body) {
                                     --set 'env.open.ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}' \
                                     --set 'env.open.ConnectionStrings__default=${ConnectionStrings__default}' \
                                     --set 'env.open.Cloud__GCP__Storage__BucketName=${Cloud__GCP__Storage__BucketName}' \
+                                    --set 'env.open.Cloud__GCP__Storage__JsonServiceAccountKey=${GAC_KEY}' \
                                     --set 'env.secrets.GOOGLE_APPLICATION_CREDENTIALS=${GAC_KEY}' \
                                     --set 'env.secrets.PSQL_PROXY_CREDENTIALS=${PROXY_KEY}' \
                                 """
