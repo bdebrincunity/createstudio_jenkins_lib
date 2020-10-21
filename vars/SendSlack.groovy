@@ -73,7 +73,11 @@ def call(def buildStatus, def stageId) {
     println "author: ${author} , author_email: ${author_email}"
     println "userID's ${userIdsString} or ${userIds}"
     def userId = slackUserIdFromEmail(author_email)
-    // build out message
+    // build out message, need to sort out 
+    if (buildStatus == 'SUCCESSFUL') {
+        // overside stageID on successfule build
+        def stageId = 'All Stages Passed'
+    }
     def msg = "BuildStatus: *${buildStatus}*\nStage: *${stageId}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`"
     // get our colors
     def colorName = colorMap[buildStatus]
