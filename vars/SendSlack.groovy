@@ -76,7 +76,7 @@ def call(def buildStatus, def stageId) {
     // build out message, need to sort out 
     if (buildStatus == 'SUCCESS') {
         // overside stageID on successfule build
-        stage = 'All Stages Passed'
+        stage = 'All Stages Passed :tada:'
     } else {
         stage = stageId
     }
