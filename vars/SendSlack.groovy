@@ -76,9 +76,9 @@ def call(def buildStatus, def stageId) {
     // build out message, need to sort out 
     if (buildStatus == 'SUCCESSFUL') {
         // overside stageID on successfule build
-        def stage = 'All Stages Passed'
+        stage = 'All Stages Passed'
     } else {
-        def stage = stageId
+        stage = stageId
     }
 
     def msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`"
