@@ -74,7 +74,7 @@ def call(def buildStatus, def stageId) {
     println "userID's ${userIdsString} or ${userIds}"
     def userId = slackUserIdFromEmail(author_email)
     // build out message, need to sort out 
-    if (buildStatus == 'SUCCESSFUL') {
+    if (buildStatus == 'SUCCESS') {
         // overside stageID on successfule build
         stage = 'All Stages Passed'
     } else {
