@@ -38,6 +38,7 @@ def call(body) {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
             SLACK_CHANNEL = "${pipelineParams.SLACK_CHANNEL}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
+            PROJECT_ID = "${pipelineParams.PROJECT_ID}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             PROJECT_DIR = "${JENKINSFILE_DIR}"
@@ -48,6 +49,7 @@ def call(body) {
             BRANCH = BRANCH_NAME.toLowerCase()
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
+            APPCENTER_API_TOKEN = credentials('appCenter')
             buildManifest = 'artifacts/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
@@ -213,9 +215,11 @@ def call(body) {
                                         echo ("Built ${project} !")
                                         if ("${type}" == 'mac') {
                                             // Update permissions to OSX project, needed to launch
-                                            sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
+                                            def executable = "${SERVICE_NAME}".capitalize()
+                                            sh("chmod +x ${project}/${executable}.app/Contents/MacOS/${executable}")
                                         }
-                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
+                                        ZipAndArchive(project: "${project}")
                                     }
                                 }
                             }
@@ -254,11 +258,8 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        if ("${type}" == 'mac') {
-                                            // Update permissions to OSX project, needed to launch
-                                            sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
-                                        }
-                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
+                                        ZipAndArchive(project: "${project}")
                                     }
                                 }
                             }
@@ -301,7 +302,8 @@ def call(body) {
                                             // Update permissions to OSX project, needed to launch
                                             sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
                                         }
-                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
+                                        ZipAndArchive(project: "${project}")
                                     }
                                 }
                             }
@@ -337,7 +339,9 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
+                                        ZipAndArchive(project: "${project}")
+                                        UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "Internal")
                                     }
                                 }
                             }
@@ -345,8 +349,7 @@ def call(body) {
                     }
                 }
             }
-            ////////// Step 2 //////////
-            stage('Build WebGL Docker') {
+            stage('Create WebGL Build') {
                 environment {
                     type = "webgl"
                 }
@@ -376,7 +379,8 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
+                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
+                                        ZipAndArchive(project: "${project}")
                                     }
                                 }
                                 sh("docker rm -f ${DOCKER_REG}/${ID} || true ")
