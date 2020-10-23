@@ -65,9 +65,9 @@ def call(body) {
 
         agent any
         // https://github.com/jenkinsci/pipeline-github-plugin#issuecommenttrigger
-        triggers {
-            issueCommentTrigger('.*test this please.*')
-        }
+        //triggers {
+        //    issueCommentTrigger('.*test this please.*')
+        //}
 
         // Pipeline stages
         stages {
