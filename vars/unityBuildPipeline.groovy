@@ -341,7 +341,7 @@ def call(body) {
                                         echo ("Built ${project} !")
                                         // Only if BRANCH_NAME ==~ /(main|staging|develop)/
                                         ZipAndArchive(project: "${project}")
-                                        UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "Internal, Public")
+                                        UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "QA-Internal, Public")
                                     }
                                 }
                             }
