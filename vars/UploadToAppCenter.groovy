@@ -6,6 +6,7 @@ def call(Map args = [:]) {
     ]
 
     Map mergedArgs = argsDefault + args
+    println "The dist groups are ${mergedArgs.distGroups}"
 
     def getLastCommitMessage = {
         last_commit = sh(returnStdout: true, script: "git log remotes/origin/${env.BRANCH_NAME} -1 --pretty=format:'%h - %an, %ar : %B'").trim()
