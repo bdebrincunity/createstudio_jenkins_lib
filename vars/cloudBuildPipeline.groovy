@@ -210,6 +210,45 @@ def call(body) {
                     }
                 }
             }
+            stage('Perform Static Analysis') {
+                environment {
+                    SONARQUBE_PRODUCTION_ACCESS_TOKEN = credentials('SONARQUBE_PRODUCTION_ACCESS_TOKEN')
+                    SONARQUBE_STAGING_ACCESS_TOKEN    = credentials('SONARQUBE_STAGING_ACCESS_TOKEN')
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                echo "Pipeline parameters: ${pipelineParams}"
+                                if (pipelineParams.SONARQUBE_SCANNER.toLowerCase() == "msbuild") { // If yes, run the container.
+                                    echo "Using SonarQube for MSBuild.\n"
+                                    def docker_params = " -e SONARQUBE_ENVIRONMENT=${pipelineParams.SONARQUBE_ENVIRONMENT}"
+                                    // Only set the tokens if they are non-zero.
+                                    if (env.SONARQUBE_PRODUCTION_ACCESS_TOKEN?.trim()) {
+                                        docker_params += " -e SONARQUBE_PRODUCTION_ACCESS_TOKEN=${env.SONARQUBE_PRODUCTION_ACCESS_TOKEN}"
+                                    }
+                                    if (env.SONARQUBE_STAGING_ACCESS_TOKEN?.trim()) {
+                                        docker_params += " -e SONARQUBE_STAGING_ACCESS_TOKEN=${env.SONARQUBE_STAGING_ACCESS_TOKEN}"
+                                    }
+                                    docker_params += " -e PROJECT_KEY=${pipelineParams.SONARQUBE_PROJECT_KEY} -e WORK_DIR=${pipelineParams.SONARQUBE_WORK_DIR}"
+                                    docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH} -e CHANGE_ID=${CHANGE_ID} -e CHANGE_TARGET=${CHANGE_TARGET} -e BRANCH_NAME=${BRANCH_NAME}"
+                                    docker_params += " -w /src -v ${pipelineParams.SONARQUBE_MOUNT_DIR}:/src:rw"
+
+                                    // Uncomment the following line if you need more verbosity.
+                                    // docker_params += " -e DEBUG=true"
+
+                                    docker.image("gcr.io/unity-labs-createstudio-test/sonarqube-msbuild").inside("${docker_params}") {
+                                        sh "/sq-scan.sh"
+                                    }
+                                } else {
+                                    echo "Not using MSBuild, so not analysing at this point."
+                                    // This may change if someone figures out how to run SQ on Unity builds
+                                }
+                            } // script
+                        } // container('docker')
+                    } // dir("...")
+                } // steps
+            } // stage
             ////////// Step 5 //////////
             stage('Publish Docker and Helm') {
                 environment {

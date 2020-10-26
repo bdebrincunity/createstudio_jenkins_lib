@@ -18,6 +18,7 @@ def call(Map args = [:]) {
         yes | gcloud auth configure-docker
         rm key.json
         docker pull gcr.io/unity-labs-createstudio-test/basetools:1.0.0
+        docker pull gcr.io/unity-labs-createstudio-test/sonarqube-msbuild
         """
 
     DockerUtils.runInDocker(context, mergedArgs.dockerImage, script)
