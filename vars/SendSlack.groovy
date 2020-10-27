@@ -86,7 +86,7 @@ def call(def buildStatus, def stageId) {
     // build out 2 different types of messages based on branches
     if(BRANCH_NAME ==~ /(main|staging|develop)/ && !isCoreJob) {
         def public_url = sh([returnStdout: true, script: "echo ${env.AppCenterURL}"]).trim()
-        msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\nPublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}-build.${env.BUILD_NUMBER}>"
+        msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\nPublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}>"
     } else {
         msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`"
     }
