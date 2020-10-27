@@ -61,6 +61,8 @@ def call(def buildStatus, def stageId) {
     buildStatus =  buildStatus ?: 'STARTED'
     // define our colous based on build status
     def colorMap = [ 'STARTED': '#F0FFFF', 'SUCCESS': '#008B00', 'UNSTABLE': '#FFFE89', 'FAILURE': '#FF0000' ]
+    // check if we are running a CORE job
+    Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
     // Lookup user ids from changeset commit authors
     // https://github.com/jenkinsci/slack-plugin#user-id-look-up
     // for some reason it does not work though.... Saving for future use
@@ -82,7 +84,7 @@ def call(def buildStatus, def stageId) {
     }
 
     // build out 2 different types of messages based on branches
-    if(BRANCH_NAME ==~ /(main|staging|develop)/) {
+    if(BRANCH_NAME ==~ /(main|staging|develop)/ && !isCoreJob) {
         def public_url = sh([returnStdout: true, script: "echo ${env.AppCenterURL}"]).trim()
         msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\nPublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}-build.${env.BUILD_NUMBER}>"
     } else {
@@ -93,9 +95,6 @@ def call(def buildStatus, def stageId) {
     def colorName = colorMap[buildStatus]
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, channel: "#${env.SLACK_CHANNEL}", message: "${msg}", notifyCommitters: true)
-
-    // check if we are running a CORE job
-    Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
 
     if (isCoreJob) {
         echo "We are in a CORE job"
