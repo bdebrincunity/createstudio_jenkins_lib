@@ -230,8 +230,22 @@ def call(body) {
                                     if (env.SONARQUBE_STAGING_ACCESS_TOKEN?.trim()) {
                                         docker_params += " -e SONARQUBE_STAGING_ACCESS_TOKEN=${env.SONARQUBE_STAGING_ACCESS_TOKEN}"
                                     }
+
+                                    // Check PR/branch variables and set the ones we actually have.
+                                    if (CHANGE_BRANCH?.trim()) {
+                                        docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH}"
+                                    }
+                                    if (CHANGE_ID?.trim()) {
+                                        docker_params += " -e CHANGE_ID=${CHANGE_ID}"
+                                    }
+                                    if (CHANGE_TARGET?.trim()) {
+                                        docker_params += " -e CHANGE_TARGET=${CHANGE_TARGET}"
+                                    }
+                                    if (BRANCH_NAME?.trim()) {
+                                        docker_params += " -e BRANCH_NAME=${BRANCH_NAME}"
+                                    }
+
                                     docker_params += " -e PROJECT_KEY=${pipelineParams.SONARQUBE_PROJECT_KEY} -e WORK_DIR=${pipelineParams.SONARQUBE_WORK_DIR}"
-                                    docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH} -e CHANGE_ID=${CHANGE_ID} -e CHANGE_TARGET=${CHANGE_TARGET} -e BRANCH_NAME=${BRANCH_NAME}"
                                     docker_params += " -w /src -v ${pipelineParams.SONARQUBE_MOUNT_DIR}:/src:rw"
 
                                     // Uncomment the following line if you need more verbosity.
