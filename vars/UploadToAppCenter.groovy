@@ -2,7 +2,7 @@ def call(Map args = [:]) {
     Map argsDefault = [
             projectType: "",
             projectPath: "",
-            distGroups: "Internal",
+            distGroups: "",
     ]
 
     Map mergedArgs = argsDefault + args
@@ -27,6 +27,8 @@ def call(Map args = [:]) {
             distributionGroups: "${mergedArgs.distGroups}",
             buildVersion: "${fullBuildVersion}",
             releaseNotes: "${last_commit}"
+        
+        // return public URL
+        return("https://install.appcenter.ms/orgs/Unity-Create-Studio/apps/${appName}/distribution_groups/external")
     }
-
 }

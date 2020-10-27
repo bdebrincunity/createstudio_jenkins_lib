@@ -105,56 +105,6 @@ def call(body) {
                    }
                 }
             }
-            // Parallel builds work, but share workspace which Unity complains about, need to figure out how to separate into different workspaces
-           /*
-            stage('Parallel Unity Build') {
-                steps {
-                    //dir("${PROJECT_DIR}") {
-                        //container('docker') {
-                            script {
-                                def builds = [:]
-                                def projectList = PROJECT_TYPE.split(",")
-                                projectList.each { item ->
-                                    builds["${item}"] = {
-                                        stage("Build ${item}") {
-                                            container('docker') {
-                                                echo "Build ${item} - ${ID}"
-                                                rnd = Math.abs(new Random().nextInt() % 3000) + 1
-                                                //sleep(rnd)
-                                                w${SERVICE_NAME}ithCredentials([
-                                                    [$class: 'UsernamePasswordMultiBinding', credentialsId:'unity_pro_login', usernameVariable: 'UNITY_USERNAME', passwordVariable: 'UNITY_PASSWORD'],
-                                                    [$class: 'StringBinding', credentialsId: 'unity_pro_license_content', variable: 'UNITY_LICENSE_CONTENT'],
-                                                    [$class: 'StringBinding', credentialsId: 'unity_pro_serial', variable: 'UNITY_SERIAL']
-                                                ]){
-                                                    //docker.image("gableroux/unity3d:2019.4.3f1-${item}").inside("-w /${item} -v \${PWD}:/${item} -it") {
-                                                    docker.image("gableroux/unity3d:2019.4.3f1-${item}").inside() {
-                                                        sh("pwd")
-                                                        sh("ls -la")
-                                                        sh("ls -la ../")
-                                                        sshagent (credentials: ['ssh_createstudio']) {
-                                                            sh("files/build.sh ${item}")
-                                                        }
-                                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${item} | sed -e 's/\\.\\///g'").trim()
-                                                        sh("ls -la")
-                                                        echo ("Built ${project} !")
-                                                        if ("${item}" == 'mac') {
-                                                            // Update permissions to OSX project, needed to launch
-                                                            sh("chmod +x ${project}/Contents/MacOS/*")
-                                                        }
-                                                        archiveArtifacts allowEmptyArchive: false, artifacts: "${project}/", fingerprint: true, followSymlinks: false
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                // Execute our parallel builds based on PROJECT_TYPES
-                                parallel builds
-                            }
-                        //}
-                    //}
-                }
-            }*/
             ////////// Step 3 //////////
             stage("Get Version") {
                 environment {
@@ -172,9 +122,10 @@ def call(body) {
                                 last_started = getCurrentStage()
                                 //sh("[ -z \"\$(docker images -a | grep \"${DOCKER_REG}/${SERVICE_NAME} 2>/dev/null)\" ] || PullCustomImages(gkeStrCredsID: 'sa-gcp-jenkins')")
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
+                                    // dumb little script to check the build manifest date, will run again to compare
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
-                                    VERSION = IncrementVersion()
+                                    env.VERSION = IncrementVersion()
                                     echo "Version is ${VERSION}"
                                 }
                             }
@@ -203,7 +154,6 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             if (binding.hasVariable('VERSION')) {
                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
-                                                    echo "Did we receive ${CURRENT_VERSION} ?"
                                                     sh("files/build.sh ${type}")
                                                 }
                                             } else {
@@ -248,7 +198,6 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             if (binding.hasVariable('VERSION')) {
                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
-                                                    echo "Did we receive ${CURRENT_VERSION} ?"
                                                     sh("files/build.sh ${type}")
                                                 }
                                             } else {
@@ -288,7 +237,6 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             if (binding.hasVariable('VERSION')) {
                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
-                                                    echo "Did we receive ${CURRENT_VERSION} ?"
                                                     sh("files/build.sh ${type}")
                                                 }
                                             } else {
@@ -341,7 +289,7 @@ def call(body) {
                                         echo ("Built ${project} !")
                                         // Only if BRANCH_NAME ==~ /(main|staging|develop)/
                                         ZipAndArchive(project: "${project}")
-                                        UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "QA-Internal, External")
+                                        env.AppCenterURL = UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "External")
                                     }
                                 }
                             }
@@ -441,30 +389,6 @@ def call(body) {
                     }
                 }
             }
-            /// Cleanup an deployments outside of the 3 main branches --> not being deployed right now
-            /*stage('Cleanup') {
-                environment {
-                    env = 'test'
-                }
-                when {
-                    expression { "${PROJECT_TYPE}".contains('webgl')  }
-                    not { 
-                        anyOf {
-                            expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
-                        }
-                    }
-                }
-                steps {
-                    dir("${PROJECT_DIR}") {
-                        script {
-                            // Remove release if exists
-                            downloadFile("k8s/configs/${env}/kubeconfig-labs-createstudio-${env}_environment", 'createstudio_ci_cd')
-                            scriptToRun = "[ -z \"\$(helm ls --kubeconfig ${KUBE_CNF} | grep ${ID} 2>/dev/null)\" ] || helm delete ${ID} --kubeconfig ${KUBE_CNF}"
-                            RunInDocker(dockerImage: "kiwigrid/gcloud-kubectl-helm", script: scriptToRun, name: "Remove Helm Release")
-                        }
-                    }
-                }
-            }*/
             stage('Update Version Manifest') {
                 environment {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
@@ -495,29 +419,6 @@ def call(body) {
                     }
                 }
             }
-            // Run the 3 tests from the shared library on the currently running Docker container
-            /*stage('Local tests') {
-                when {
-                    expression { "${PROJECT_TYPE}".contains('webgl') }
-                }
-                parallel {
-                    stage('Curl http_code') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'http_code')
-                        }
-                    }
-                    stage('Curl total_time') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'total_time')
-                        }
-                    }
-                    stage('Curl size_download') {
-                        steps {
-                            curlRun ("http://${host_ip}", 'size_download')
-                        }
-                    }
-                }
-            }*/
         }
         post {
             always {
