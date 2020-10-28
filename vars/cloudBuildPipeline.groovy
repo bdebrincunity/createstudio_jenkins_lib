@@ -122,7 +122,7 @@ def call(body) {
                                 docker.image("gcr.io/unity-labs-createstudio-test/basetools:1.0.0").inside("-w /workspace -v \${PWD}:/workspace -it") {
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
-                                    env.VERSION = IncrementVersion()
+                                    VERSION = IncrementVersion()
                                     echo "Version is ${VERSION}"
                                 }
                             }
@@ -138,8 +138,7 @@ def call(body) {
                             script {
                                 last_started = getCurrentStage()
                                 echo "Building application and Docker image"
-                                //if (binding.hasVariable('VERSION')) {
-                                  if ("${env.VERSION}") {
+                                if (binding.hasVariable('VERSION')) {
                                     sh("docker rm -f ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} || true")
                                     docker.build("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}", "-f Dockerfile .")
                                     myContainer = docker.image("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}")
