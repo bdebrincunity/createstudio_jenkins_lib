@@ -75,7 +75,7 @@ def call(def buildStatus, def stageId) {
     println "author: ${author} , author_email: ${author_email}"
     println "userID's ${userIdsString} or ${userIds}"
     def userId = slackUserIdFromEmail(author_email)
-    // build out message, need to sort out 
+
     if (buildStatus == 'SUCCESS') {
         // overside stageID on successfule build
         stage = 'All Stages Passed :tada:'
@@ -83,12 +83,17 @@ def call(def buildStatus, def stageId) {
         stage = stageId
     }
 
+    // build out message, need to sort out 
+    def msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\n"
+
+
     // build out 2 different types of messages based on branches
     if(BRANCH_NAME ==~ /(main|staging|develop)/ && !isCoreJob) {
         def public_url = sh([returnStdout: true, script: "echo ${env.AppCenterURL}"]).trim()
-        msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\nPublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}>"
-    } else {
-        msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`"
+        if ("${public_url}" != null) {
+            // Add the Public URL download to artifact
+            msg += "PublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}>\nPlatform: *${env.type}*\n"
+        }
     }
 
     // get our colors

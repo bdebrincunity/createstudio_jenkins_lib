@@ -423,7 +423,7 @@ def call(body) {
         post {
             always {
                 echo 'One way or another, I have finished'
-                archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
+                archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false, excludes: "Library/*.log"
                 SendSlack("${currentBuild.currentResult}", "${last_started}")
             }
             success {
