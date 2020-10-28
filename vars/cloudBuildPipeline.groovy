@@ -210,7 +210,7 @@ def call(body) {
                     }
                 }
             }
-            stage('Perform Static Analysis') {
+            /*stage('Perform Static Analysis') {
                 environment {
                     SONARQUBE_PRODUCTION_ACCESS_TOKEN = credentials('SONARQUBE_PRODUCTION_ACCESS_TOKEN')
                     SONARQUBE_STAGING_ACCESS_TOKEN    = credentials('SONARQUBE_STAGING_ACCESS_TOKEN')
@@ -219,6 +219,7 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
+                                last_started = getCurrentStage()
                                 echo "Pipeline parameters: ${pipelineParams}"
                                 if (pipelineParams.SONARQUBE_SCANNER.toLowerCase() == "msbuild") { // If yes, run the container.
                                     echo "Using SonarQube for MSBuild.\n"
@@ -262,7 +263,7 @@ def call(body) {
                         } // container('docker')
                     } // dir("...")
                 } // steps
-            } // stage
+            } // stage*/
             ////////// Step 5 //////////
             stage('Publish Docker and Helm') {
                 environment {
