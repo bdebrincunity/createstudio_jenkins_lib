@@ -138,7 +138,8 @@ def call(body) {
                             script {
                                 last_started = getCurrentStage()
                                 echo "Building application and Docker image"
-                                if (binding.hasVariable('VERSION')) {
+                                //if (binding.hasVariable('VERSION')) {
+                                  if ("${env.VERSION}") {
                                     sh("docker rm -f ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} || true")
                                     docker.build("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}", "-f Dockerfile .")
                                     myContainer = docker.image("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}")
