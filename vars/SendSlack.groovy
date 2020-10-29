@@ -69,11 +69,12 @@ def call(def buildStatus, def stageId) {
     /*sh """
         git config user.name ${author}
         git config user.email ${author_email}
-    """*/
+    """
     def userIds = slackUserIdsFromCommitters()
     def userIdsString = userIds.collect { "<@$it>" }.join(' ')
     println "author: ${author} , author_email: ${author_email}"
     println "userID's ${userIdsString} or ${userIds}"
+    */
     def userId = slackUserIdFromEmail(author_email)
 
     if (buildStatus == 'SUCCESS') {

@@ -125,7 +125,7 @@ def call(body) {
                                     // dumb little script to check the build manifest date, will run again to compare
                                     manifestDateCheckPre = sh(returnStdout: true, script: "python3 /usr/local/bin/gcp_bucket_check.py | grep Updated")
                                     println(manifestDateCheckPre)
-                                    env.VERSION = IncrementVersion()
+                                    VERSION = IncrementVersion()
                                     echo "Version is ${VERSION}"
                                 }
                             }
@@ -154,6 +154,7 @@ def call(body) {
                                         sshagent (credentials: ['ssh_createstudio']) {
                                             if (binding.hasVariable('VERSION')) {
                                                 withEnv(["CURRENT_VERSION=${VERSION}"]) {
+                                                    echo "In the VERSION block"
                                                     sh("files/build.sh ${type}")
                                                 }
                                             } else {
