@@ -233,16 +233,16 @@ def call(body) {
                                     }
 
                                     // Check PR/branch variables and set the ones we actually have.
-                                    if (CHANGE_ID?.trim()) {
+                                    if (env.CHANGE_ID.trim()) {
                                         docker_params += " -e CHANGE_ID=${CHANGE_ID}"
                                     }
-                                    if (BRANCH_NAME?.trim()) {
+                                    if (env.BRANCH_NAME.trim()) {
                                         docker_params += " -e BRANCH_NAME=${BRANCH_NAME}"
                                     }
-                                    if (CHANGE_TARGET?.trim()) {
+                                    if (env.CHANGE_TARGET.trim()) {
                                         docker_params += " -e CHANGE_TARGET=${CHANGE_TARGET}"
                                     }
-                                    if (CHANGE_BRANCH?.trim()) {
+                                    if (env.CHANGE_BRANCH.trim()) {
                                         docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH}"
                                     }
 
