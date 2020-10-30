@@ -64,6 +64,7 @@ def call(body) {
             booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
             booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
             booleanParam (name: 'BUMP_PATCH', defaultValue: false, description: 'Bump Patch Semver')
+            booleanParam (name: 'DEBUG', defaultValue: false, description: 'Turn on debugging and verbose output where enabled')
         }
 
         agent any

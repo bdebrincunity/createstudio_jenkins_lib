@@ -61,6 +61,7 @@ def call(body) {
             booleanParam (name: 'BUMP_MAJOR', defaultValue: false, description: 'Bump Major Semver')
             booleanParam (name: 'BUMP_MINOR', defaultValue: false, description: 'Bump Minor Semver')
             booleanParam (name: 'BUMP_PATCH', defaultValue: false, description: 'Bump Minor Semver')
+            booleanParam (name: 'DEBUG', defaultValue: false, description: 'Turn on debugging and verbose output where enabled')
         }
 
         agent any
@@ -210,7 +211,7 @@ def call(body) {
                     }
                 }
             }
-            /*stage('Perform Static Analysis') {
+            stage('Perform Static Analysis') {
                 environment {
                     SONARQUBE_PRODUCTION_ACCESS_TOKEN = credentials('SONARQUBE_PRODUCTION_ACCESS_TOKEN')
                     SONARQUBE_STAGING_ACCESS_TOKEN    = credentials('SONARQUBE_STAGING_ACCESS_TOKEN')
@@ -219,12 +220,11 @@ def call(body) {
                     dir("${PROJECT_DIR}") {
                         container('docker') {
                             script {
-                                last_started = getCurrentStage()
-                                echo "Pipeline parameters: ${pipelineParams}"
                                 if (pipelineParams.SONARQUBE_SCANNER.toLowerCase() == "msbuild") { // If yes, run the container.
-                                    echo "Using SonarQube for MSBuild.\n"
-                                    def docker_params = " -e SONARQUBE_ENVIRONMENT=${pipelineParams.SONARQUBE_ENVIRONMENT}"
-                                    // Only set the tokens if they are non-zero.
+                                    // Identify environment (staging|production) and project
+                                    def docker_params = " -e SONARQUBE_ENVIRONMENT=${pipelineParams.SONARQUBE_ENVIRONMENT}  -e SONARQUBE_PROJECT_KEY=${pipelineParams.SONARQUBE_PROJECT_KEY}"
+
+                                    // Only set the tokens if they are not null.
                                     if (env.SONARQUBE_PRODUCTION_ACCESS_TOKEN?.trim()) {
                                         docker_params += " -e SONARQUBE_PRODUCTION_ACCESS_TOKEN=${env.SONARQUBE_PRODUCTION_ACCESS_TOKEN}"
                                     }
@@ -233,37 +233,40 @@ def call(body) {
                                     }
 
                                     // Check PR/branch variables and set the ones we actually have.
-                                    if (CHANGE_BRANCH?.trim()) {
-                                        docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH}"
-                                    }
                                     if (CHANGE_ID?.trim()) {
                                         docker_params += " -e CHANGE_ID=${CHANGE_ID}"
-                                    }
-                                    if (CHANGE_TARGET?.trim()) {
-                                        docker_params += " -e CHANGE_TARGET=${CHANGE_TARGET}"
                                     }
                                     if (BRANCH_NAME?.trim()) {
                                         docker_params += " -e BRANCH_NAME=${BRANCH_NAME}"
                                     }
+                                    if (CHANGE_TARGET?.trim()) {
+                                        docker_params += " -e CHANGE_TARGET=${CHANGE_TARGET}"
+                                    }
+                                    if (CHANGE_BRANCH?.trim()) {
+                                        docker_params += " -e CHANGE_BRANCH=${CHANGE_BRANCH}"
+                                    }
 
-                                    docker_params += " -e PROJECT_KEY=${pipelineParams.SONARQUBE_PROJECT_KEY} -e WORK_DIR=${pipelineParams.SONARQUBE_WORK_DIR}"
-                                    docker_params += " -w /src -v ${pipelineParams.SONARQUBE_MOUNT_DIR}:/src:rw"
+                                    // Be more verbose if we're debugging.
+                                    if (pipelineParams.DEBUG == true) {
+                                        echo "*************** Using SonarQube for MSBuild. ***************"
+                                        echo "Pipeline parameters: ${pipelineParams}"
+                                        echo "Workspace directory: ${WORKSPACE}"
+                                        docker_params += " -e DEBUG=true"
+                                    }
 
-                                    // Uncomment the following line if you need more verbosity.
-                                    // docker_params += " -e DEBUG=true"
-
+                                    // This is where the magic happens -- see createstudio_orchestration repo /docker/SonarQube-MSBuild
                                     docker.image("gcr.io/unity-labs-createstudio-test/sonarqube-msbuild").inside("${docker_params}") {
                                         sh "/sq-scan.sh"
                                     }
                                 } else {
-                                    echo "Not using MSBuild, so not analysing at this point."
+                                    echo "Not using MSBuild, so not analyzing at this point."
                                     // This may change if someone figures out how to run SQ on Unity builds
                                 }
                             } // script
                         } // container('docker')
                     } // dir("...")
                 } // steps
-            } // stage*/
+            } // stage
             ////////// Step 5 //////////
             stage('Publish Docker and Helm') {
                 environment {
