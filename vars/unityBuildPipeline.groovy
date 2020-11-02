@@ -21,6 +21,13 @@ def call(body) {
     // Obtain only the Project DIR so this will be our working directory
     def JENKINSFILE_DIR = new File(currentScriptPath).parent
     def build_script = libraryResource 'com/createstudio/scripts/unity_build.sh'
+    // Project Map of builds to be used for AppCenter/Slack
+    def Map<String,List> projectMap = new HashMap<>()
+    def Boolean isTargetBranch = "${BRANCH_NAME}".matches("main|staging|develop|release")
+    def Boolean isCoreJob = "${JOB_NAME}".contains("CORE")
+    def Boolean isShowroomJob = "${JOB_NAME}".contains("SHOWROOM")
+    def Boolean isStoryJob = "${JOB_NAME}".contains("STORY")
+
 
     /*
         This is the main pipeline section with the stages of the CI/CD
@@ -31,6 +38,7 @@ def call(body) {
             // Build auto timeout
             timeout(time: 600, unit: 'MINUTES')
             ansiColor('xterm')
+            buildDiscarder(logRotator(numToKeepStr: '10'))
         }
 
         // Some global default variables
@@ -106,14 +114,13 @@ def call(body) {
                    }
                 }
             }
-            ////////// Step 3 //////////
             stage("Get Version") {
                 environment {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -170,8 +177,9 @@ def call(body) {
                                             def executable = "${SERVICE_NAME}".capitalize()
                                             sh("chmod +x ${project}/${executable}.app/Contents/MacOS/${executable}")
                                         }
-                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
-                                        ZipAndArchive(project: "${project}")
+                                        if (isTargetBranch) {
+                                            ZipAndArchive(project: "${project}")
+                                        }
                                     }
                                 }
                             }
@@ -209,8 +217,9 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
-                                        ZipAndArchive(project: "${project}")
+                                        if (isTargetBranch) {
+                                            ZipAndArchive(project: "${project}")
+                                        }
                                     }
                                 }
                             }
@@ -248,12 +257,9 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        if ("${type}" == 'mac') {
-                                            // Update permissions to OSX project, needed to launch
-                                            sh("find ./${project} -name \"*.app\" -exec chmod +x {} \\;")
+                                        if (isTargetBranch) {
+                                            ZipAndArchive(project: "${project}")
                                         }
-                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
-                                        ZipAndArchive(project: "${project}")
                                     }
                                 }
                             }
@@ -286,12 +292,15 @@ def call(body) {
                                                 sh("files/build.sh ${type}")
                                             }
                                         }
-                                        project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
+                                        def project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
-                                        ZipAndArchive(project: "${project}")
-                                        env.AppCenterURL = UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "QA, External")
+                                        if (isTargetBranch) {
+                                            ZipAndArchive(project: "${project}")
+                                            def AppCenterURL = UploadToAppCenter(projectType: "${type}", projectPath: "${project}", distGroups: "External")
+                                            // add to our HashMap the type as key and AppCenterURL as value
+                                            projectMap.put(type, AppCenterURL)
+                                        }
                                     }
                                 }
                             }
@@ -329,8 +338,9 @@ def call(body) {
                                         project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}-${type} | sed -e 's/\\.\\///g'").trim()
                                         sh("ls -la ${project}")
                                         echo ("Built ${project} !")
-                                        // Only if BRANCH_NAME ==~ /(main|staging|develop)/
-                                        ZipAndArchive(project: "${project}")
+                                        if (isTargetBranch) {
+                                            ZipAndArchive(project: "${project}")
+                                        }
                                     }
                                 }
                                 sh("docker rm -f ${DOCKER_REG}/${ID} || true ")
@@ -396,8 +406,8 @@ def call(body) {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -426,7 +436,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false, excludes: "**/Library/*.log"
-                SendSlack("${currentBuild.currentResult}", "${last_started}")
+                SendSlack(buildStatus: "${currentBuild.currentResult}", stageId: "${last_started}", projectMap: projectMap)
             }
             success {
                 echo 'I succeeded!'

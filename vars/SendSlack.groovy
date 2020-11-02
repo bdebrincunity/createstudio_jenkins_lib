@@ -42,7 +42,16 @@ def reportOnTestsForBuild() {
   return (testReport)
 }
 
-def call(def buildStatus, def stageId) {
+def call(Map args = [:]) {
+    Map argsDefault = [
+            name        : "Notification: Slack",
+            buildStatus : "STARTED",
+            stageId     : "",
+            projectMap  : "",
+    ]
+
+    Map mergedArgs = argsDefault + args
+    context = this
 
 
     def getLastCommitMessage = {
@@ -58,11 +67,9 @@ def call(def buildStatus, def stageId) {
     getLastCommitMessage()
     getGitAuthor()
     // set default of build status
-    buildStatus =  buildStatus ?: 'STARTED'
+    buildStatus =  mergedArgs.buildStatus ?: 'STARTED'
     // define our colous based on build status
     def colorMap = [ 'STARTED': '#F0FFFF', 'SUCCESS': '#008B00', 'UNSTABLE': '#FFFE89', 'FAILURE': '#FF0000' ]
-    // check if we are running a CORE job
-    Boolean isCoreJob =  "${JOB_NAME}".contains("CORE")
     // Lookup user ids from changeset commit authors
     // https://github.com/jenkinsci/slack-plugin#user-id-look-up
     // for some reason it does not work though.... Saving for future use
@@ -81,19 +88,18 @@ def call(def buildStatus, def stageId) {
         // overside stageID on successfule build
         stage = 'All Stages Passed :tada:'
     } else {
-        stage = stageId
+        stage = mergedArgs.stageId
     }
 
-    // build out message, need to sort out 
+    // build out base message
     def msg = "BuildStatus: *${buildStatus}*\nStage: *${stage}*\nProject: *${env.SERVICE_NAME}*\nBuildNumber: *${env.BUILD_NUMBER}*\nURL: ${env.BUILD_URL}\nAuthor: <@${userId ?: author}>\nLastCommit: ```${last_commit}```\nCommitID: `${commit}`\n"
 
-
-    // build out 2 different types of messages based on branches
-    if(BRANCH_NAME ==~ /(main|staging|develop)/ && !isCoreJob) {
-        def public_url = sh([returnStdout: true, script: "echo ${env.AppCenterURL}"]).trim()
-        if ("${public_url}" != null) {
-            // Add the Public URL download to artifact
-            msg += "PublicDownload: <${public_url}|${env.SERVICE_NAME}-${env.BRANCH_NAME}-${env.VERSION}>\nPlatform: *${env.type}*\n"
+    // Add PublicURL to slack message if we released artifacts to AppCenter.
+    // Supplied from the HashMap -> projectMap
+    if(env.isTargetBranch && !env.isCoreJob) {
+        mergedArgs.projectMap.each { it ->
+            println("first level item: " + it);
+            msg += "PublicDownload-" + "$it.key".capitalize() + ": " + "$it.value\n"
         }
     }
 
@@ -102,28 +108,20 @@ def call(def buildStatus, def stageId) {
     // send slack message based on above criteria
     def slackResponse = slackSend(color: colorName, channel: "#${env.SLACK_CHANNEL}", message: "${msg}", notifyCommitters: true)
 
-    if (isCoreJob) {
-        echo "We are in a CORE job"
-        // Save below for future optimization, right now its just stdout
-        def report = reportOnTestsForBuild()
-        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+    // Attaching logs to Slack Thread message
+    if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
+        if (env.isCoreJob) {
+            echo "We are in a CORE job"
+            // This is spitting out stdout to a log file, wonder if we can upload the build_results file?
+            def report = reportOnTestsForBuild()
             sh("echo \"${report}\" >> test_report.log")
             files = findFiles(glob: "**/*.log")
+        } else {
+            echo "We are in a UNITY job"
+            files = findFiles(glob: "**/unity-build-player*.log")
         }
-    } else {
-        echo "We are in a UNITY job"
-        files = findFiles(glob: "**/unity-build-player*.log")
-        println "This is the report: ${files}"
-    }
-
-    withEnv([
-            "dir=${sh([returnStdout: true, script: 'echo ${PROJECT_DIR}']).trim()}",
-    ]) {
-        //def files = findFiles(glob: "${dir}/unity-build-player*.log")
-        if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
-            files.each { file ->
-                slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching *" + file.name + "* to give you some context")
-            }
+        files.each { file ->
+            slackUploadFile(channel: slackResponse.threadId, filePath: file.path, initialComment: "Attaching *" + file.name + "* to give you some context")
         }
     }
 }

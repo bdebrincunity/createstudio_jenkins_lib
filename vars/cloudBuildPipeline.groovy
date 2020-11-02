@@ -20,6 +20,12 @@ def call(body) {
     def currentScriptPath = currentBuild.rawBuild.parent.definition.scriptPath
     // Obtain only the Project DIR so this will be our working directory
     def JENKINSFILE_DIR = new File(currentScriptPath).parent
+    // Project Map of builds to be used for AppCenter/Slack
+    def Map<String,List> projectMap = new HashMap<>()
+    def Boolean isTargetBranch = "${BRANCH_NAME}".matches("main|staging|develop|release")
+    def Boolean isCoreJob = "${JOB_NAME}".contains("CORE")
+    def Boolean isShowroomJob = "${JOB_NAME}".contains("SHOWROOM")
+    def Boolean isStoryJob = "${JOB_NAME}".contains("STORY")
 
     /*
         This is the main pipeline section with the stages of the CI/CD
@@ -30,6 +36,7 @@ def call(body) {
             // Build auto timeout
             timeout(time: 300, unit: 'MINUTES')
             ansiColor('xterm')
+            buildDiscarder(logRotator(numToKeepStr: '10'))
         }
 
         // Some global default variables
@@ -110,8 +117,8 @@ def call(body) {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -174,7 +181,7 @@ def call(body) {
                                 sh("docker rm -f  ${myDbContainer} || true")
                                 sh("docker run -d -e 'POSTGRES_PASSWORD=Aa123456' -e 'POSTGRES_DB=createdataservice_test' -it --name ${myDbContainer} postgres:12")
                                 docker.image('mcr.microsoft.com/dotnet/core/sdk:3.1-alpine3.12').inside("--network container:${myDbContainer} -w /workspace -v ${PWD}:/workspace -u 1000 -it") {
-                                    sh("dotnet test --logger \"trx;LogFileName=results.trx\" --blame")
+                                    sh("dotnet test --logger \"trx;LogFileName=results.trx;verbosity=minimal\" --blame")
                                 }
                                 // https://www.jenkins.io/doc/book/pipeline/docker/#running-sidecar-containers
                                 // keep getting connection refused.......
@@ -275,8 +282,8 @@ def call(body) {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -301,8 +308,8 @@ def call(body) {
                     GOOGLE_APPLICATION_CREDENTIALS = credentials('sa-createstudio-jenkins')
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -336,8 +343,8 @@ def call(body) {
                     Cloud__GCP__Storage__BucketName = "test-bucket"
                 }
                 when {
-                    anyOf {
-                        expression { BRANCH_NAME ==~ /(main|staging|develop)/ }
+                    expression {
+                        isTargetBranch == true
                     }
                 }
                 steps {
@@ -380,7 +387,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 //archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
-                SendSlack("${currentBuild.currentResult}", "${last_started}")
+                SendSlack(buildStatus: "${currentBuild.currentResult}", stageId: "${last_started}")
             }
             success {
                 echo 'I succeeded!'
