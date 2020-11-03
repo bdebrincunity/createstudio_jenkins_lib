@@ -44,6 +44,7 @@ def call(body) {
             SERVICE_NAME = "${pipelineParams.SERVICE_NAME}"
             SLACK_CHANNEL = "${pipelineParams.SLACK_CHANNEL}"
             PROJECT_TYPE = "${pipelineParams.PROJECT_TYPE}"
+            PROJECT_ID = "${pipelineParams.PROJECT_ID}"
             SERVER_PORT = "${pipelineParams.SERVER_PORT}"
             TEST_LOCAL_PORT = "${pipelineParams.TEST_LOCAL_PORT}"
             PROJECT_DIR = "${JENKINSFILE_DIR}"
@@ -54,6 +55,7 @@ def call(body) {
             BRANCH = BRANCH_NAME.toLowerCase()
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
+            APPCENTER_API_TOKEN = credentials('appCenter')
             buildManifest = 'artifacts/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
@@ -148,8 +150,8 @@ def call(body) {
                                 echo "Building application and Docker image"
                                 if (binding.hasVariable('VERSION')) {
                                     sh("docker rm -f ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION} || true")
-                                    docker.build("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}", "-f Dockerfile .")
-                                    myContainer = docker.image("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}")
+                                    myContainer = docker.build("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}", "-f Dockerfile .")
+                                    myImage = docker.image("${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}")
                                     //echo "Starting ${SERVICE_NAME} container"
                                     //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}:${BRANCH}-${VERSION}"
                                 } else {
@@ -159,7 +161,7 @@ def call(body) {
                                     //echo "Starting ${SERVICE_NAME} container"
                                     //sh "docker run --detach --name ${SERVICE_NAME} --rm --publish ${TEST_LOCAL_PORT}:80 ${DOCKER_REG}/${SERVICE_NAME}"
                                 }
-                                host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
+                                //host_ip = sh(returnStdout: true, script: '/sbin/ip route | awk \'/default/ { print $3 ":${TEST_LOCAL_PORT}" }\'')
                             }
                         }
                     }
@@ -302,6 +304,36 @@ def call(body) {
                     }
                 }
             }
+            stage('Upload Artifacts') {
+                when {
+                    expression {
+                        isTargetBranch == true
+                    }
+                }
+                steps {
+                    dir("${PROJECT_DIR}") {
+                        container('docker') {
+                            script {
+                                // Publish client api library to AppCenter
+                                last_started = getCurrentStage()
+                                // This is very rough, should be paramertized but should work for now to get Cloud team able to distribute these libraries
+                                sh("mkdir ${SERVICE_NAME}_client_api_library_${BRANCH}-${VERSION}")
+                                docker.image("${myImage.imageName()}").withRun("-w /workspace -v \${PWD}:/workspace -it") { c ->
+                                    sh("docker cp ${c.id}:/app/Unity.CreateDataService.Common.Shared.dll ${SERVICE_NAME}_client_api_library_${BRANCH}-${VERSION}/")
+                                    sh("docker cp ${c.id}:/app/Unity.CreateDataService.Resources.dll ${SERVICE_NAME}_client_api_library_${BRANCH}-${VERSION}/")
+                                }
+                                project = sh(returnStdout: true, script: "find . -maxdepth 1 -type d | grep ${SERVICE_NAME}_client_api_library | sed -e 's/\\.\\///g'").trim()
+                                sh("apk update && apk add git")
+                                sh("ls -la ${project}")
+                                echo ("Built ${project} !")
+                                ZipAndArchive(project: "${project}")
+                                def AppCenterURL = UploadToAppCenter(projectType: "${PROJECT_TYPE}", projectPath: "${project}", distGroups: "External")
+                                projectMap.put("${PROJECT_ID}", AppCenterURL)
+                            }
+                        }
+                    }
+                }
+            }
             ////////// Step 7 //////////
             stage('Update Version Manifest') {
                 environment {
@@ -387,7 +419,7 @@ def call(body) {
             always {
                 echo 'One way or another, I have finished'
                 //archiveArtifacts allowEmptyArchive: true, artifacts: "**/*.log", fingerprint: true, followSymlinks: false
-                SendSlack(buildStatus: "${currentBuild.currentResult}", stageId: "${last_started}")
+                SendSlack(buildStatus: "${currentBuild.currentResult}", stageId: "${last_started}", projectMap: projectMap)
             }
             success {
                 echo 'I succeeded!'

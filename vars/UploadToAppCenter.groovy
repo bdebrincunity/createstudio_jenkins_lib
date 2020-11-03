@@ -18,7 +18,9 @@ def call(Map args = [:]) {
     def buildVer = System.getenv("VERSION") ?: "0.1.0"
     def fullBuildVersion = "${BRANCH_NAME}-${buildVer}-build.${BUILD_NUMBER}"
 
-    echo 'Publishing App to AppCenter!'
+    echo "Publishing -- ${appName} -- to AppCenter!"
+    echo "Artifact to push --> ${mergedArgs.projectPath}.zip"
+    echo "Version to push --> ${fullBuildVersion}"
     appCenter apiToken: APPCENTER_API_TOKEN,
         ownerName: 'Unity-Create-Studio',
         appName: "${appName}",

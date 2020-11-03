@@ -96,7 +96,7 @@ def call(Map args = [:]) {
 
     // Add PublicURL to slack message if we released artifacts to AppCenter.
     // Supplied from the HashMap -> projectMap
-    if(env.isTargetBranch && !env.isCoreJob) {
+    if("${env.isTargetBranch}") {
         mergedArgs.projectMap.each { it ->
             println("first level item: " + it);
             msg += "PublicDownload-" + "$it.key".capitalize() + ": " + "$it.value\n"
@@ -110,7 +110,7 @@ def call(Map args = [:]) {
 
     // Attaching logs to Slack Thread message
     if (buildStatus == 'UNSTABLE' || buildStatus == 'FAILURE') {
-        if (env.isCoreJob) {
+        if ("${env.isCoreJob}") {
             echo "We are in a CORE job"
             // This is spitting out stdout to a log file, wonder if we can upload the build_results file?
             def report = reportOnTestsForBuild()
