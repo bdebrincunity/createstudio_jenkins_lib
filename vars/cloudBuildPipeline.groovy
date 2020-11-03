@@ -56,6 +56,10 @@ def call(body) {
             ID = NAME_ID.toLowerCase().replaceAll("_", "-").replaceAll('/', '-')
             BUILD_UUID = UUID.randomUUID().toString()
             APPCENTER_API_TOKEN = credentials('appCenter')
+            isTargetBranch = "${isTargetBranch}"
+            isCoreJob = "${isCoreJob}"
+            isShowroomJob = "${isShowroomJob}"
+            isStoryJob = "${isStoryJob}"
             buildManifest = 'artifacts/build_manifest.json'
             gcpBucketCICD = 'createstudio_ci_cd'
             gcpBucketCredential = 'sa-createstudio-buckets'
